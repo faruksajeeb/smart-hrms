@@ -35,4 +35,18 @@ return [
         ],
     ],
 
+    'openai' => [
+        'api_key' => env('OPENAI_API_KEY'),
+        'base_url' => env('OPENAI_BASE_URL', 'https://api.openai.com/v1'),
+        'model' => env('OPENAI_MODEL', 'gpt-4o-mini'),
+        'timeout' => (int) env('OPENAI_TIMEOUT', 120),
+    ],
+
+    'google_ai' => [
+        'api_key' => env('GOOGLE_AI_API_KEY'),
+        'base_url' => env('GOOGLE_AI_BASE_URL', 'https://generativelanguage.googleapis.com/v1beta'),
+        'model' => env('GOOGLE_AI_MODEL', 'gemini-2.0-flash'),
+        'timeout' => (int) env('GOOGLE_AI_TIMEOUT', 120),
+    ],
+
 ];

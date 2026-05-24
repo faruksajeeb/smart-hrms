@@ -31,6 +31,7 @@ class AccessControl
             'manage payroll',
             'manage leave requests',
             'view reports',
+            'doc-analyzer.view-doc-analyzer',
         ];
     }
 

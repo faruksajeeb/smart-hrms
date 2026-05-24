@@ -30,6 +30,13 @@ const navigation = [
         roles: ['admin'],
         active: 'admin.reports',
     },
+     {
+        label: 'Doc Analyzer',
+        route: 'admin.doc-analyzer.index',
+        permission: 'doc-analyzer.view-doc-analyzer',
+        roles: ['admin'],
+        active: 'admin.doc-analyzer.*',
+    },
 ];
 
 export default function AdminLayout({ children, heading, subheading }) {

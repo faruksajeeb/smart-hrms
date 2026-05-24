@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\DocAnalyzerController;
 use App\Http\Controllers\Admin\PermissionController as AdminPermissionController;
 use App\Http\Controllers\Admin\RoleController as AdminRoleController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
@@ -49,6 +50,13 @@ Route::middleware('auth')->group(function () {
                 ],
             ]);
         })->middleware('permission:view reports')->name('reports');
+
+        Route::middleware('permission:doc-analyzer.view-doc-analyzer')->group(function () {
+            Route::get('/doc-analyzer', [DocAnalyzerController::class, 'index'])->name('doc-analyzer.index');
+            Route::post('/doc-analyzer', [DocAnalyzerController::class, 'store'])->name('doc-analyzer.store');
+            Route::get('/doc-analyzer/{documentAnalysis}', [DocAnalyzerController::class, 'show'])->name('doc-analyzer.show');
+            Route::delete('/doc-analyzer/{documentAnalysis}', [DocAnalyzerController::class, 'destroy'])->name('doc-analyzer.destroy');
+        });
     });
 
     Route::prefix('hr')->name('hr.')->middleware('role:hr')->group(function () {

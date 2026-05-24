@@ -15,6 +15,8 @@ return [
 
     'default' => env('FILESYSTEM_DISK', 'local'),
 
+    'document_analyses_disk' => env('DOCUMENT_ANALYSES_DISK', 'local'),
+
     /*
     |--------------------------------------------------------------------------
     | Filesystem Disks
