@@ -9,6 +9,26 @@ const roleStyles = {
     employee: 'bg-amber-100 text-amber-700 ring-amber-200',
 };
 
+function isNavItemVisible(item, authPermissions, authRoles) {
+    if (item.permission && !authPermissions.includes(item.permission)) {
+        return false;
+    }
+
+    if (item.roles && !item.roles.some((value) => authRoles.includes(value))) {
+        return false;
+    }
+
+    return true;
+}
+
+function isNavItemActive(item) {
+    const patterns = Array.isArray(item.active)
+        ? item.active
+        : [item.active ?? item.route];
+
+    return patterns.some((pattern) => route().current(pattern));
+}
+
 export default function RoleLayout({
     role,
     heading,
@@ -21,19 +41,45 @@ export default function RoleLayout({
 
     const items = useMemo(
         () =>
-            navigation.filter((item) => {
-                if (item.permission && !authPermissions.includes(item.permission)) {
-                    return false;
-                }
+            navigation
+                .map((item) => {
+                    if (item.children) {
+                        const children = item.children.filter((child) =>
+                            isNavItemVisible(child, authPermissions, authRoles),
+                        );
 
-                if (item.roles && !item.roles.some((value) => authRoles.includes(value))) {
-                    return false;
-                }
+                        if (children.length === 0) {
+                            return null;
+                        }
 
-                return true;
-            }),
+                        if (!isNavItemVisible(item, authPermissions, authRoles)) {
+                            return null;
+                        }
+
+                        return { ...item, children };
+                    }
+
+                    return isNavItemVisible(item, authPermissions, authRoles)
+                        ? item
+                        : null;
+                })
+                .filter(Boolean),
         [navigation, authPermissions, authRoles],
     );
+
+    const [expandedGroups, setExpandedGroups] = useState(() =>
+        navigation
+            .filter((item) => item.children && isNavItemActive(item))
+            .map((item) => item.label),
+    );
+
+    const toggleGroup = (label) => {
+        setExpandedGroups((current) =>
+            current.includes(label)
+                ? current.filter((value) => value !== label)
+                : [...current, label],
+        );
+    };
 
     const badgeClass = roleStyles[role] ?? roleStyles.employee;
 
@@ -88,7 +134,60 @@ export default function RoleLayout({
 
                     <nav className="mt-8 space-y-2">
                         {items.map((item) => {
-                            const active = route().current(item.active ?? item.route);
+                            if (item.children) {
+                                const active = isNavItemActive(item);
+                                const expanded =
+                                    expandedGroups.includes(item.label) || active;
+
+                                return (
+                                    <div key={item.label}>
+                                        <button
+                                            type="button"
+                                            onClick={() => toggleGroup(item.label)}
+                                            className={`flex w-full items-center justify-between rounded-2xl px-4 py-3 text-sm font-medium transition ${
+                                                active
+                                                    ? 'bg-white/10 text-white'
+                                                    : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                                            }`}
+                                        >
+                                            <span>{item.label}</span>
+                                            <span
+                                                className={`text-xs transition ${
+                                                    expanded ? 'rotate-180' : ''
+                                                }`}
+                                            >
+                                                ▾
+                                            </span>
+                                        </button>
+
+                                        {expanded && (
+                                            <div className="mt-1 space-y-1 pl-3">
+                                                {item.children.map((child) => {
+                                                    const childActive = isNavItemActive(
+                                                        child,
+                                                    );
+
+                                                    return (
+                                                        <Link
+                                                            key={child.route}
+                                                            href={route(child.route)}
+                                                            className={`flex items-center justify-between rounded-2xl px-4 py-2.5 text-sm font-medium transition ${
+                                                                childActive
+                                                                    ? 'bg-white text-slate-950 shadow-lg shadow-slate-950/10'
+                                                                    : 'text-slate-400 hover:bg-white/10 hover:text-white'
+                                                            }`}
+                                                        >
+                                                            <span>{child.label}</span>
+                                                        </Link>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            }
+
+                            const active = isNavItemActive(item);
 
                             return (
                                 <Link

@@ -10,6 +10,34 @@ const navigation = [
         roles: ['hr'],
     },
     {
+        label: 'Attendance',
+        active: [
+            'hr.attendance.*',
+            'hr.shifts.*',
+            'hr.shift-schedules.*',
+            'hr.shift-swap-requests.*',
+        ],
+        permission: 'attendance.view',
+        roles: ['hr'],
+        children: [
+            {
+                label: 'Shifts',
+                route: 'hr.shifts.index',
+                active: 'hr.shifts.*',
+            },
+            {
+                label: 'Shift & Schedule',
+                route: 'hr.shift-schedules.index',
+                active: 'hr.shift-schedules.*',
+            },
+            {
+                label: 'Shift Swap Requests',
+                route: 'hr.shift-swap-requests.index',
+                active: 'hr.shift-swap-requests.*',
+            },
+        ],
+    },
+    {
         label: 'Master Data',
         route: 'hr.master-data.index',
         active: 'hr.master-data.*',
