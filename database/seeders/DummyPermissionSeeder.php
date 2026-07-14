@@ -108,11 +108,19 @@ class DummyPermissionSeeder extends Seeder
             ['name' => 'hr-settings.view-activity-logs', 'group_name' => 'hr-settings'],
             ['name' => 'hr-settings.manage-approvers', 'group_name' => 'hr-settings'],
             ['name' => 'hr-settings.manage-delegations', 'group_name' => 'hr-settings'],
+
             ['name' => 'manage master data', 'group_name' => 'master-data'],
             ['name' => 'master-data.view-master-data', 'group_name' => 'master-data'],
             ['name' => 'master-data.create-master-data', 'group_name' => 'master-data'],
             ['name' => 'master-data.edit-master-data', 'group_name' => 'master-data'],
             ['name' => 'master-data.delete-master-data', 'group_name' => 'master-data'],
+
+            ['name' => 'manage shift swaps', 'group_name' => 'shift-swaps'],
+            ['name' => 'shift-swaps.view-shift-swaps', 'group_name' => 'shift-swaps'],
+            ['name' => 'shift-swaps.create-shift-swap', 'group_name' => 'shift-swaps'],
+            ['name' => 'shift-swaps.edit-shift-swap', 'group_name' => 'shift-swaps'],
+            ['name' => 'shift-swaps.delete-shift-swap', 'group_name' => 'shift-swaps'],
+
             ['name' => 'dashboard.view', 'group_name' => 'dashboard'],
             ['name' => 'view-dashboard', 'group_name' => 'dashboard'],
             ['name' => 'manage-users', 'group_name' => 'admin'],

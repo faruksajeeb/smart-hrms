@@ -4,6 +4,7 @@ import SecondaryButton from '@/Components/SecondaryButton';
 import TextInput from '@/Components/TextInput';
 import HRLayout from '@/Layouts/HRLayout';
 import { Head, Link, router } from '@inertiajs/react';
+import { CheckCircle2, Clock, Filter, Mail, Pencil, Search, UserPlus, UserX, Users } from 'lucide-react';
 import { useState } from 'react';
 
 const titleCase = (value) =>
@@ -43,11 +44,11 @@ export default function Index({ employees, filters, stats, options }) {
     };
 
     const cards = [
-        { label: 'Total Employees', value: stats.total },
-        { label: 'Onboarding', value: stats.onboarding },
-        { label: 'Probation', value: stats.probation },
-        { label: 'Active', value: stats.active },
-        { label: 'Separated', value: stats.separated },
+        { label: 'Total Employees', value: stats.total, icon: Users },
+        { label: 'Onboarding', value: stats.onboarding, icon: UserPlus },
+        { label: 'Probation', value: stats.probation, icon: Clock },
+        { label: 'Active', value: stats.active, icon: CheckCircle2 },
+        { label: 'Separated', value: stats.separated, icon: UserX },
     ];
 
     return (
@@ -57,10 +58,13 @@ export default function Index({ employees, filters, stats, options }) {
         >
             <Head title="Employee Management" />
 
-            <div className="grid gap-4 md:grid-cols-5">
+            <div className="grid gap-3 md:grid-cols-5">
                 {cards.map((card) => (
-                    <section key={card.label} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-                        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">{card.label}</p>
+                    <section key={card.label} className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                        <div className="flex items-center justify-between">
+                            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">{card.label}</p>
+                            <card.icon className="h-5 w-5 text-slate-400" />
+                        </div>
                         <p className="mt-3 text-3xl font-semibold tracking-tight text-slate-950">{card.value}</p>
                     </section>
                 ))}
@@ -71,12 +75,15 @@ export default function Index({ employees, filters, stats, options }) {
                     <form onSubmit={submitSearch} className="grid gap-3 md:grid-cols-[minmax(0,1fr)_220px_220px_auto]">
                         <div>
                             <label className="text-sm font-medium text-slate-700">Search Employees</label>
-                            <TextInput
-                                value={search}
-                                onChange={(event) => setSearch(event.target.value)}
-                                placeholder="Name, email, employee ID, department"
-                                className="mt-2 block w-full rounded-2xl border-slate-200 bg-slate-50 px-4 py-3"
-                            />
+                            <div className="relative mt-2">
+                                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                                <TextInput
+                                    value={search}
+                                    onChange={(event) => setSearch(event.target.value)}
+                                    placeholder="Name, email, employee ID, department"
+                                    className="block w-full rounded-2xl border-slate-200 bg-slate-50 py-3 pl-9 pr-4"
+                                />
+                            </div>
                         </div>
                         <SearchSelect
                             id="filter_status"
@@ -94,15 +101,17 @@ export default function Index({ employees, filters, stats, options }) {
                             options={options.departments}
                             placeholder="All departments"
                         />
-                        <SecondaryButton type="submit" className="h-fit rounded-2xl px-5 py-3">
+                        <SecondaryButton type="submit" className="inline-flex h-fit items-center gap-2 rounded-2xl px-5 py-3">
+                            <Filter className="h-4 w-4" />
                             Filter
                         </SecondaryButton>
                     </form>
 
                     <Link
                         href={route('hr.employees.create')}
-                        className="inline-flex items-center justify-center rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+                        className="inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
                     >
+                        <UserPlus className="h-4 w-4" />
                         Onboard Employee
                     </Link>
                 </div>
@@ -123,8 +132,31 @@ export default function Index({ employees, filters, stats, options }) {
                             {employees.data.map((employee) => (
                                 <tr key={employee.id}>
                                     <td className="py-4">
-                                        <p className="font-semibold text-slate-900">{employee.name}</p>
-                                        <p className="text-sm text-slate-500">{employee.employee_id} · {employee.email}</p>
+                                        <div className="flex items-center gap-3">
+                                            {employee.photo_url ? (
+                                                <img
+                                                    src={employee.photo_url}
+                                                    alt={employee.name}
+                                                    className="h-11 w-11 shrink-0 rounded-full border border-slate-200 object-cover"
+                                                />
+                                            ) : (
+                                                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-slate-100 text-sm font-semibold text-slate-500">
+                                                    {employee.name?.charAt(0)?.toUpperCase() ?? '?'}
+                                                </div>
+                                            )}
+                                            <div className="min-w-0">
+                                                <Link
+                                                    href={route('hr.employees.show', employee.id)}
+                                                    className="font-semibold text-slate-900 transition hover:text-slate-600 hover:underline"
+                                                >
+                                                    {employee.name}
+                                                </Link>
+                                                <p className="flex items-center gap-1 text-sm text-slate-500">
+                                                    <Mail className="h-3.5 w-3.5 shrink-0" />
+                                                    <span className="truncate">{employee.employee_id} · {employee.email}</span>
+                                                </p>
+                                            </div>
+                                        </div>
                                     </td>
                                     <td className="py-4">
                                         <p className="text-sm font-medium text-slate-800">{employee.designation ?? 'Not set'}</p>
@@ -141,10 +173,8 @@ export default function Index({ employees, filters, stats, options }) {
                                     <td className="py-4 text-sm text-slate-600">{employee.salary}</td>
                                     <td className="py-4">
                                         <div className="flex justify-end gap-2">
-                                            <Link href={route('hr.employees.show', employee.id)} className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50">
-                                                View
-                                            </Link>
-                                            <Link href={route('hr.employees.edit', employee.id)} className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800">
+                                            <Link href={route('hr.employees.edit', employee.id)} className="inline-flex items-center gap-1.5 rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800">
+                                                <Pencil className="h-4 w-4" />
                                                 Edit
                                             </Link>
                                         </div>

@@ -56,7 +56,11 @@ class EmployeeController extends Controller
         $department = trim((string) $request->string('department'));
 
         $employees = User::query()
-            ->with(['employeeProfile', 'roles:id,name'])
+            ->with([
+                'employeeProfile',
+                'roles:id,name',
+                'employeeDocuments' => fn ($query) => $query->where('document_type', 'photo'),
+            ])
             ->where(function ($query) {
                 $query->whereHas('employeeProfile')
                     ->orWhereHas('roles', fn ($roles) => $roles->where('name', User::ROLE_EMPLOYEE));
@@ -218,6 +222,20 @@ class EmployeeController extends Controller
         );
     }
 
+    public function viewDocument(User $employee, EmployeeDocument $document)
+    {
+        abort_unless($document->employee_id === $employee->id, 404);
+
+        $disk = config('filesystems.document_analyses_disk', 'local');
+        abort_unless(Storage::disk($disk)->exists($document->file), 404);
+
+        return Storage::disk($disk)->response(
+            $document->file,
+            $document->original_filename ?: basename($document->file),
+            ['Content-Type' => $document->mime_type ?: 'application/octet-stream'],
+        );
+    }
+
     public function terminate(TerminateEmployeeRequest $request, User $employee): RedirectResponse
     {
         DB::transaction(function () use ($request, $employee) {
@@ -304,7 +322,19 @@ class EmployeeController extends Controller
             'joining_date' => $profile?->joining_date?->toDateString(),
             'probation_ends_on' => $profile?->probation_ends_on?->toDateString(),
             'salary' => $profile?->salary_display ?? 'Not set',
+            'photo_url' => $this->photoUrl($employee),
         ];
+    }
+
+    protected function photoUrl(User $employee): ?string
+    {
+        if (! $employee->relationLoaded('employeeDocuments')) {
+            return null;
+        }
+
+        $photo = $employee->employeeDocuments->firstWhere('document_type', 'photo');
+
+        return $photo ? route('hr.employees.documents.view', [$employee->id, $photo->id]) : null;
     }
 
     /**
@@ -377,7 +407,9 @@ class EmployeeController extends Controller
                     'filename' => $document->original_filename,
                     'expiry_date' => $document->expiry_date?->toDateString(),
                     'remarks' => $document->remarks,
+                    'mime_type' => $document->mime_type,
                     'download_url' => route('hr.employees.documents.download', [$employee->id, $document->id]),
+                    'view_url' => route('hr.employees.documents.view', [$employee->id, $document->id]),
                 ])
                 ->all(),
         ];

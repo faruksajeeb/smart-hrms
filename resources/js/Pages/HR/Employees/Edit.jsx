@@ -41,6 +41,7 @@ export default function Edit({ employee, options }) {
                     options={options}
                     submitLabel="Save Employee"
                     isEdit={true}
+                    documents={employee.documents ?? []}
                 />
             </form>
         </HRLayout>

@@ -4,7 +4,43 @@ import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
 import SearchSelect from '@/Components/SearchSelect';
 import TextInput from '@/Components/TextInput';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+
+const IMAGE_EXTENSION = /\.(jpe?g|png|gif|webp|bmp)$/i;
+
+function DocumentPreview({ file, src, mimeType }) {
+    const [preview, setPreview] = useState(null);
+
+    useEffect(() => {
+        if (file instanceof File && file.type.startsWith('image/')) {
+            const url = URL.createObjectURL(file);
+            setPreview(url);
+            return () => URL.revokeObjectURL(url);
+        }
+
+        if (mimeType?.startsWith('image/') || (src && IMAGE_EXTENSION.test(src))) {
+            setPreview(src);
+            return;
+        }
+
+        setPreview(null);
+    }, [file, src, mimeType]);
+
+    if (!preview) {
+        return null;
+    }
+
+    return (
+        <div className="mt-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Preview</p>
+            <img
+                src={preview}
+                alt="Selected document preview"
+                className="mt-2 max-h-48 w-full rounded-xl border border-slate-200 bg-white object-contain"
+            />
+        </div>
+    );
+}
 
 function TextField({ id, label, type = 'text', value, onChange, error, placeholder }) {
     return (
@@ -31,8 +67,12 @@ export default function EmployeeForm({
     options,
     submitLabel,
     isEdit = false,
+    documents = [],
 }) {
     const masterData = options.masterData ?? {};
+    const existingDocuments = Object.fromEntries(
+        (documents ?? []).map((document) => [document.type, document]),
+    );
     const [cvFile, setCvFile] = useState(null);
     const [cvLoading, setCvLoading] = useState(false);
     const [cvMessage, setCvMessage] = useState('');
@@ -123,6 +163,7 @@ export default function EmployeeForm({
                                 }}
                                 className="mt-2 block w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600"
                             />
+                            <DocumentPreview file={cvFile} />
                         </div>
                         <button
                             type="button"
@@ -161,6 +202,11 @@ export default function EmployeeForm({
                             <InputLabel htmlFor="document_cv" value="CV / Resume" />
                             <input id="document_cv" type="file" accept=".pdf,.docx,.txt,.md" onChange={(event) => setData('document_cv', event.target.files?.[0] ?? null)} className="mt-2 block w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600" />
                             <InputError className="mt-2" message={errors.document_cv} />
+                            <DocumentPreview
+                                file={data.document_cv}
+                                src={existingDocuments.cv?.download_url}
+                                mimeType={existingDocuments.cv?.mime_type}
+                            />
                         </div>
                     )}
                     {[
@@ -181,6 +227,11 @@ export default function EmployeeForm({
                                 className="mt-2 block w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600"
                             />
                             <InputError className="mt-2" message={errors[`document_${type}`]} />
+                            <DocumentPreview
+                                file={data[`document_${type}`]}
+                                src={existingDocuments[type]?.download_url}
+                                mimeType={existingDocuments[type]?.mime_type}
+                            />
                             <div className="mt-3 grid gap-3 sm:grid-cols-2">
                                 <div>
                                     <InputLabel htmlFor={`document_${type}_expiry_date`} value="Expiry Date" />
