@@ -5,6 +5,8 @@ use App\Http\Controllers\Admin\PermissionController as AdminPermissionController
 use App\Http\Controllers\Admin\RoleController as AdminRoleController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\HR\EmployeeController as HREmployeeController;
+use App\Http\Controllers\HR\MasterDataItemController as HRMasterDataItemController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -61,18 +63,31 @@ Route::middleware('auth')->group(function () {
 
     Route::prefix('hr')->name('hr.')->middleware('role:hr')->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'hr'])->name('dashboard');
-        Route::get('/employees', function () {
-            return Inertia::render('Modules/Show', [
-                'layout' => 'hr',
-                'title' => 'Employee Management',
-                'description' => 'Keep employment records current, support onboarding, and maintain organizational structure.',
-                'highlights' => [
-                    'Track employee profile updates',
-                    'Review department assignments',
-                    'Prepare records for audits',
-                ],
-            ]);
-        })->middleware('permission:manage employees')->name('employees');
+        Route::middleware('permission:manage employees')->group(function () {
+            Route::post('/employees/cv-extract', [HREmployeeController::class, 'extractCv'])
+                ->name('employees.cv-extract');
+            Route::resource('employees', HREmployeeController::class)
+                ->except('destroy')
+                ->parameters(['employees' => 'employee']);
+            Route::post('/employees/{employee}/terminate', [HREmployeeController::class, 'terminate'])
+                ->name('employees.terminate');
+            Route::post('/employees/{employee}/rejoin', [HREmployeeController::class, 'rejoin'])
+                ->name('employees.rejoin');
+            Route::get('/employees/{employee}/documents/{document}/download', [HREmployeeController::class, 'downloadDocument'])
+                ->name('employees.documents.download');
+        });
+        Route::get('/master-data', [HRMasterDataItemController::class, 'index'])
+            ->middleware('permission:master-data.view-master-data')
+            ->name('master-data.index');
+        Route::post('/master-data', [HRMasterDataItemController::class, 'store'])
+            ->middleware('permission:master-data.create-master-data')
+            ->name('master-data.store');
+        Route::match(['put', 'patch'], '/master-data/{master_data_item}', [HRMasterDataItemController::class, 'update'])
+            ->middleware('permission:master-data.edit-master-data')
+            ->name('master-data.update');
+        Route::delete('/master-data/{master_data_item}', [HRMasterDataItemController::class, 'destroy'])
+            ->middleware('permission:master-data.delete-master-data')
+            ->name('master-data.destroy');
         Route::get('/payroll', function () {
             return Inertia::render('Modules/Show', [
                 'layout' => 'hr',

@@ -100,6 +100,7 @@ class DummyPermissionSeeder extends Seeder
             ['name' => 'hr-settings.delete', 'group_name' => 'hr-settings'],
             ['name' => 'hr-settings.export', 'group_name' => 'hr-settings'],
             ['name' => 'hr-settings.import', 'group_name' => 'hr-settings'],
+            
             ['name' => 'hr-settings.manage-departments', 'group_name' => 'hr-settings'],
             ['name' => 'hr-settings.manage-teams', 'group_name' => 'hr-settings'],
             ['name' => 'hr-settings.manage-roles', 'group_name' => 'hr-settings'],
@@ -107,6 +108,11 @@ class DummyPermissionSeeder extends Seeder
             ['name' => 'hr-settings.view-activity-logs', 'group_name' => 'hr-settings'],
             ['name' => 'hr-settings.manage-approvers', 'group_name' => 'hr-settings'],
             ['name' => 'hr-settings.manage-delegations', 'group_name' => 'hr-settings'],
+            ['name' => 'manage master data', 'group_name' => 'master-data'],
+            ['name' => 'master-data.view-master-data', 'group_name' => 'master-data'],
+            ['name' => 'master-data.create-master-data', 'group_name' => 'master-data'],
+            ['name' => 'master-data.edit-master-data', 'group_name' => 'master-data'],
+            ['name' => 'master-data.delete-master-data', 'group_name' => 'master-data'],
             ['name' => 'dashboard.view', 'group_name' => 'dashboard'],
             ['name' => 'view-dashboard', 'group_name' => 'dashboard'],
             ['name' => 'manage-users', 'group_name' => 'admin'],
@@ -149,6 +155,7 @@ class DummyPermissionSeeder extends Seeder
             ['name' => 'edit-profile', 'group_name' => 'user'],
             ['name' => 'change-password', 'group_name' => 'user'],
             ['name' => 'view-activity-logs', 'group_name' => 'user'],
+
         ];
 
         foreach ($permissions as $attributes) {

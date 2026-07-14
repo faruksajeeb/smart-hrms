@@ -4,8 +4,16 @@ const navigation = [
     { label: 'Dashboard', route: 'hr.dashboard' },
     {
         label: 'Employees',
-        route: 'hr.employees',
+        route: 'hr.employees.index',
+        active: 'hr.employees.*',
         permission: 'manage employees',
+        roles: ['hr'],
+    },
+    {
+        label: 'Master Data',
+        route: 'hr.master-data.index',
+        active: 'hr.master-data.*',
+        permission: 'master-data.view-master-data',
         roles: ['hr'],
     },
     {

@@ -7,6 +7,9 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -29,7 +32,6 @@ class User extends Authenticatable
 
     public const STATUS_INACTIVE = 'inactive';
 
-
     protected function casts(): array
     {
         return [
@@ -37,7 +39,6 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
-
 
     public function primaryRole(): ?string
     {
@@ -49,7 +50,6 @@ class User extends Authenticatable
         };
     }
 
-
     public function dashboardRoute(): string
     {
         return match ($this->primaryRole()) {
@@ -57,5 +57,26 @@ class User extends Authenticatable
             self::ROLE_HR => 'hr.dashboard',
             default => 'employee.dashboard',
         };
+    }
+
+    public function employeeProfile(): HasOne
+    {
+        return $this->hasOne(EmployeeProfile::class);
+    }
+
+    public function employeeLifecycleEvents(): HasMany
+    {
+        return $this->hasMany(EmployeeLifecycleEvent::class);
+    }
+
+    public function employeeDocuments(): HasMany
+    {
+        return $this->hasMany(EmployeeDocument::class, 'employee_id');
+    }
+
+    public function masterDataItems(): BelongsToMany
+    {
+        return $this->belongsToMany(MasterDataItem::class, 'employee_master_data_item')
+            ->withTimestamps();
     }
 }

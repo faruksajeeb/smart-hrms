@@ -1,17 +1,26 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head } from '@inertiajs/react';
-import DeleteUserForm from './Partials/DeleteUserForm';
-import UpdatePasswordForm from './Partials/UpdatePasswordForm';
+import { Head, usePage } from '@inertiajs/react';
+import AdminLayout from '@/Layouts/AdminLayout';
+import EmployeeLayout from '@/Layouts/EmployeeLayout';
+import HRLayout from '@/Layouts/HRLayout';
 import UpdateProfileInformationForm from './Partials/UpdateProfileInformationForm';
+import UpdatePasswordForm from './Partials/UpdatePasswordForm';
+import DeleteUserForm from './Partials/DeleteUserForm';
+
+const roleLayouts = {
+    admin: AdminLayout,
+    hr: HRLayout,
+    employee: EmployeeLayout,
+};
 
 export default function Edit({ mustVerifyEmail, status }) {
+    const user = usePage().props.auth.user;
+    const Layout = roleLayouts[user?.primary_role] ?? AuthenticatedLayout;
+
     return (
-        <AuthenticatedLayout
-            header={
-                <h2 className="text-xl font-semibold leading-tight text-gray-800">
-                    Profile
-                </h2>
-            }
+        <Layout
+            heading="Profile"
+            subheading="Manage your account information and security settings."
         >
             <Head title="Profile" />
 
@@ -34,6 +43,6 @@ export default function Edit({ mustVerifyEmail, status }) {
                     </div>
                 </div>
             </div>
-        </AuthenticatedLayout>
+        </Layout>
     );
 }
