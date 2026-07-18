@@ -11,16 +11,18 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('employee_weekly_off_assignments', function (Blueprint $table) {
+        Schema::create('employee_shift_assignments', function (Blueprint $table) {
 
             $table->id();
 
             $table->foreignId('user_id')
                 ->constrained('users')
+                ->cascadeOnUpdate()
                 ->cascadeOnDelete();
 
-            $table->foreignId('weekly_off_policy_id')
+            $table->foreignId('shift_id')
                 ->constrained()
+                ->cascadeOnUpdate()
                 ->restrictOnDelete();
 
             $table->date('effective_from');
@@ -71,6 +73,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('employee_weekly_off_assignments');
+        Schema::dropIfExists('employee_shift_assignments');
     }
 };

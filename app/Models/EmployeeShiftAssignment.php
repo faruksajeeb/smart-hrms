@@ -9,19 +9,20 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-#[Fillable([
-    'user_id',
-    'weekly_off_policy_id',
-    'effective_from',
-    'effective_to',
-    'assignment_type',
-    'remarks',
-    'created_by',
-    'updated_by',
-])]
-class EmployeeWeeklyOffAssignment extends Model
+class EmployeeShiftAssignment extends Model
 {
     use HasFactory, SoftDeletes;
+
+    protected $fillable = [
+        'user_id',
+        'shift_id',
+        'effective_from',
+        'effective_to',
+        'assignment_type',
+        'remarks',
+        'created_by',
+        'updated_by',
+    ];
 
     protected function casts(): array
     {
@@ -36,15 +37,14 @@ class EmployeeWeeklyOffAssignment extends Model
     | Relationships
     |--------------------------------------------------------------------------
     */
-
     public function employee(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');
     }
 
-    public function weeklyOffPolicy(): BelongsTo
+    public function shift(): BelongsTo
     {
-        return $this->belongsTo(WeeklyOffPolicy::class);
+        return $this->belongsTo(Shift::class);
     }
 
     public function creator(): BelongsTo
@@ -62,7 +62,6 @@ class EmployeeWeeklyOffAssignment extends Model
     | Scopes
     |--------------------------------------------------------------------------
     */
-
     public function scopeCurrent(Builder $query): Builder
     {
         return $query
@@ -73,7 +72,7 @@ class EmployeeWeeklyOffAssignment extends Model
             });
     }
 
-    public function scopeEffectiveOn(Builder $query, $date): Builder
+    public function scopeEffectiveOn(Query $query, $date): Builder
     {
         return $query
             ->whereDate('effective_from', '<=', $date)
@@ -81,12 +80,5 @@ class EmployeeWeeklyOffAssignment extends Model
                 $query->whereNull('effective_to')
                     ->orWhereDate('effective_to', '>=', $date);
             });
-    }
-
-    #accessors
-    #effective_from
-    public function getEffectiveFromAttribute($value)
-    {
-        return \Carbon\Carbon::parse($value)->format('d-m-Y');  
     }
 }

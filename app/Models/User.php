@@ -86,6 +86,32 @@ class User extends Authenticatable
     //     return $this->belongsTo(Department::class);
     // }
 
+    public function shiftAssignments()
+    {
+        return $this->hasMany(EmployeeShiftAssignment::class);
+    }
+
+    public function currentShiftAssignment()
+    {
+        return $this->hasOne(EmployeeShiftAssignment::class)
+            ->where('is_current', true);
+    }
+
+
+    public function weeklyOffAssignments()
+    {
+        return $this->hasMany(
+            EmployeeWeeklyOffAssignment::class
+        );
+    }
+
+    public function currentWeeklyOffAssignment()
+    {
+        return $this->hasOne(
+            EmployeeWeeklyOffAssignment::class
+        )->where('is_current', true);
+    }
+
     public function shiftSchedules(): HasMany
     {
         return $this->hasMany(ShiftSchedule::class);

@@ -14,6 +14,9 @@ use App\Http\Controllers\HR\ShiftScheduleController;
 use App\Http\Controllers\HR\ShiftSwapRequestController;
 
 use App\Http\Controllers\HR\WeeklyOffPolicyController;
+use App\Http\Controllers\HR\EmployeeWeeklyOffAssignmentController;
+use App\Http\Controllers\HR\EmployeeShiftAssignmentController;
+
 
 use App\Http\Controllers\ProfileController;
 use Illuminate\Http\Request;
@@ -146,6 +149,18 @@ Route::middleware('auth')->group(function () {
                 '/weekly-off-policies/{weeklyOffPolicy}/clone',
                 [WeeklyOffPolicyController::class, 'clone']
             )->name('weekly-off-policies.clone');
+
+            // ==================== NEW ASSIGNMENT ROUTES ====================
+            // Weekly Off Assignments
+            Route::resource('weekly-off-assignments', EmployeeWeeklyOffAssignmentController::class)
+                
+                ->parameters(['weekly-off-assignments' => 'assignment']);
+
+            // Shift Assignments
+            Route::resource('shift-assignments', EmployeeShiftAssignmentController::class)
+                ->except(['show'])
+                ->parameters(['shift-assignments' => 'assignment']);
+            // =========
 
 
         });

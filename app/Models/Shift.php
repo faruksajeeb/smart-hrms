@@ -69,4 +69,9 @@ class Shift extends Model
     {
         return $query->where('status', true);
     }
+
+    public function employeeAssignments()
+    {
+        return $this->hasMany(EmployeeShiftAssignment::class);
+    }
 }
