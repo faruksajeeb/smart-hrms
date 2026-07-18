@@ -7,8 +7,14 @@ use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\HR\EmployeeController as HREmployeeController;
 use App\Http\Controllers\HR\MasterDataItemController as HRMasterDataItemController;
-use App\Http\Controllers\HR\AttendanceController as AttendanceController;
-use App\Http\Controllers\HR\ShiftController as HRShiftController;
+
+use App\Http\Controllers\HR\AttendanceController;
+use App\Http\Controllers\HR\ShiftController;
+use App\Http\Controllers\HR\ShiftScheduleController;
+use App\Http\Controllers\HR\ShiftSwapRequestController;
+
+use App\Http\Controllers\HR\WeeklyOffPolicyController;
+
 use App\Http\Controllers\ProfileController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -92,27 +98,30 @@ Route::middleware('auth')->group(function () {
         Route::delete('/master-data/{master_data_item}', [HRMasterDataItemController::class, 'destroy'])
             ->middleware('permission:master-data.delete-master-data')
             ->name('master-data.destroy');
-        Route::middleware('permission:attendance.view')->group(function () {
+
+        Route::middleware('permission:manage attendance')->group(function () {
             Route::get('/attendance', [AttendanceController::class, 'index'])->name('attendance.index');
 
-            Route::middleware('permission:attendance.manage-shifts')->group(function () {
-                Route::resource('shifts', HRShiftController::class)->except(['show']);
-                Route::patch('/shifts/{shift}/toggle-status', [HRShiftController::class, 'toggleStatus'])
-                    ->name('shifts.toggle-status');
-            });
+            Route::post('/shift-schedules', [ShiftScheduleController::class, 'store'])->name('shift-schedules.store');
+            Route::patch('/shift-schedules/{shiftSchedule}', [ShiftScheduleController::class, 'update'])->name('shift-schedules.update');
+            Route::delete('/shift-schedules/{shiftSchedule}', [ShiftScheduleController::class, 'destroy'])->name('shift-schedules.destroy');
 
-            Route::get('/shift-schedules', function () {
-                return Inertia::render('Modules/Show', [
-                    'layout' => 'hr',
-                    'title' => 'Shift & Schedule',
-                    'description' => 'Assign shifts to employees, manage rosters, and keep daily schedules aligned with attendance.',
-                    'highlights' => [
-                        'Weekly roster planning',
-                        'Employee shift assignments',
-                        'Schedule conflict detection',
-                    ],
-                ]);
-            })->middleware('permission:attendance.manage-schedules')->name('shift-schedules.index');
+            Route::get('/shifts', [ShiftController::class, 'index'])->name('shifts.index');
+            Route::post('/shifts', [ShiftController::class, 'store'])->name('shifts.store');
+            Route::patch('/shifts/{shift}', [ShiftController::class, 'update'])->name('shifts.update');
+            Route::delete('/shifts/{shift}', [ShiftController::class, 'destroy'])->name('shifts.destroy');
+
+            Route::get('/shift-swaps', [ShiftSwapRequestController::class, 'index'])->name('shift-swaps.index');
+            Route::post('/shift-swaps', [ShiftSwapRequestController::class, 'store'])->name('shift-swaps.store');
+            Route::post('/shift-swaps/{swapRequest}/accept', [ShiftSwapRequestController::class, 'accept'])->name('shift-swaps.accept');
+            Route::post('/shift-swaps/{swapRequest}/review', [ShiftSwapRequestController::class, 'review'])->name('shift-swaps.review');
+            Route::delete('/shift-swaps/{swapRequest}', [ShiftSwapRequestController::class, 'cancel'])->name('shift-swaps.cancel');
+
+            Route::post('/attendance/clock-in', [AttendanceController::class, 'clockIn'])->name('attendance.clock-in');
+            Route::post('/attendance/clock-out', [AttendanceController::class, 'clockOut'])->name('attendance.clock-out');
+
+
+            Route::get('/shift-schedules', [ShiftScheduleController::class, 'index'])->middleware('permission:manage attendance')->name('shift-schedules.index');
 
             Route::get('/shift-swap-requests', function () {
                 return Inertia::render('Modules/Show', [
@@ -125,7 +134,20 @@ Route::middleware('auth')->group(function () {
                         'Approval history and audit trail',
                     ],
                 ]);
-            })->middleware('permission:shift-swaps.view-shift-swaps')->name('shift-swap-requests.index');
+            })->middleware('permission:manage attendance')->name('shift-swap-requests.index');
+
+
+            Route::resource(
+                'weekly-off-policies',
+                WeeklyOffPolicyController::class
+            );
+
+            Route::get(
+                '/weekly-off-policies/{weeklyOffPolicy}/clone',
+                [WeeklyOffPolicyController::class, 'clone']
+            )->name('weekly-off-policies.clone');
+
+
         });
         Route::get('/payroll', function () {
             return Inertia::render('Modules/Show', [
@@ -151,7 +173,6 @@ Route::middleware('auth')->group(function () {
                 ],
             ]);
         })->middleware('permission:manage leave requests')->name('leave');
-
     });
 
     Route::prefix('employee')->name('employee.')->middleware('role:employee')->group(function () {
@@ -183,4 +204,4 @@ Route::middleware('auth')->group(function () {
     });
 });
 
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';

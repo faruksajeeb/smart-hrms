@@ -100,7 +100,7 @@ class DummyPermissionSeeder extends Seeder
             ['name' => 'hr-settings.delete', 'group_name' => 'hr-settings'],
             ['name' => 'hr-settings.export', 'group_name' => 'hr-settings'],
             ['name' => 'hr-settings.import', 'group_name' => 'hr-settings'],
-            
+
             ['name' => 'hr-settings.manage-departments', 'group_name' => 'hr-settings'],
             ['name' => 'hr-settings.manage-teams', 'group_name' => 'hr-settings'],
             ['name' => 'hr-settings.manage-roles', 'group_name' => 'hr-settings'],
@@ -163,6 +163,12 @@ class DummyPermissionSeeder extends Seeder
             ['name' => 'edit-profile', 'group_name' => 'user'],
             ['name' => 'change-password', 'group_name' => 'user'],
             ['name' => 'view-activity-logs', 'group_name' => 'user'],
+
+            ['name' => 'weekly-off-policy.view', 'group_name' => 'weekly-off-policy'],
+            ['name' => 'weekly-off-policy.create', 'group_name' => 'weekly-off-policy'],
+            ['name' => 'weekly-off-policy.update', 'group_name' => 'weekly-off-policy'],
+            ['name' => 'weekly-off-policy.delete', 'group_name' => 'weekly-off-policy'],
+
 
         ];
 

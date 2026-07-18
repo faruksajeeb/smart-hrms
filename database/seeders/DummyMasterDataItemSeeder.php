@@ -14,8 +14,8 @@ class DummyMasterDataItemSeeder extends Seeder
     {
         $company = $this->upsert(
             MasterDataItem::CATEGORY_COMPANY,
-            'ACME',
-            'Acme Group',
+            'NNS',
+            'NNS Group',
             description: 'Primary group company for demo data.',
             sortOrder: 1,
         );

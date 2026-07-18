@@ -21,6 +21,8 @@ class DatabaseSeeder extends Seeder
             AdminUserSeeder::class,
             DummyUserSeeder::class,
             DummyMasterDataItemSeeder::class,
+            ShiftSeeder::class,
+            WeeklyOffPolicySeeder::class,
         ]);
     }
 }

@@ -17,7 +17,7 @@ const navigation = [
             'hr.shift-schedules.*',
             'hr.shift-swap-requests.*',
         ],
-        permission: 'attendance.view',
+        permission: 'manage attendance',
         roles: ['hr'],
         children: [
             {
@@ -34,6 +34,11 @@ const navigation = [
                 label: 'Shift Swap Requests',
                 route: 'hr.shift-swap-requests.index',
                 active: 'hr.shift-swap-requests.*',
+            },
+             {
+                label: 'Weekly Off Policies',
+                route: 'hr.weekly-off-policies.index',
+                active: 'hr.weekly-off-policies.*',
             },
         ],
     },

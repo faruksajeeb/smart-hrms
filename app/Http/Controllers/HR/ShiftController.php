@@ -4,7 +4,6 @@ namespace App\Http\Controllers\HR;
 
 use App\Http\Controllers\Controller;
 use App\Models\Shift;
-use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -14,112 +13,84 @@ class ShiftController extends Controller
 {
     public function index(): Response
     {
-        $shifts = Shift::query()
-            ->orderBy('name')
-            ->get()
-            ->map(fn (Shift $shift) => $this->toArray($shift));
-
         return Inertia::render('HR/Shifts/Index', [
-            'shifts' => $shifts,
-            'stats' => [
-                'total' => $shifts->count(),
-                'active' => $shifts->where('is_active', true)->count(),
-                'inactive' => $shifts->where('is_active', false)->count(),
-                'overnight' => $shifts->where('is_overnight', true)->count(),
-            ],
+            'shifts' => Shift::orderBy('shift_name')->get(),
         ]);
-    }
-
-    public function create(): Response
-    {
-        return Inertia::render('HR/Shifts/Create');
     }
 
     public function store(Request $request): RedirectResponse
     {
-        $data = $this->validateShift($request);
+        abort_unless($request->user()->can('manage attendance'), 403);
 
-        $shift = Shift::create($data);
+        $data = $this->validateData($request);
 
-        return redirect()
-            ->route('hr.shifts.index')
-            ->with('success', "{$shift->name} shift has been created.");
-    }
+        $data['company_id'] = auth()->user()->company_id ?? 1;
+        $data['created_by'] = auth()->id();
 
-    public function edit(Shift $shift): Response
-    {
-        return Inertia::render('HR/Shifts/Edit', [
-            'shift' => $this->toArray($shift),
-        ]);
+        Shift::create($data);
+
+        return back()->with('success', 'Shift created successfully.');
     }
 
     public function update(Request $request, Shift $shift): RedirectResponse
     {
-        $shift->update($this->validateShift($request));
+        abort_unless($request->user()->can('manage attendance'), 403);
 
-        return redirect()
-            ->route('hr.shifts.index')
-            ->with('success', "{$shift->name} shift has been updated.");
+        $data = $this->validateData($request);
+
+        $data['updated_by'] = auth()->id();
+
+        $shift->update($data);
+
+        return back()->with('success', 'Shift updated successfully.');
     }
 
-    public function destroy(Shift $shift): RedirectResponse
+    public function destroy(Request $request, Shift $shift): RedirectResponse
     {
-        $name = $shift->name;
+        abort_unless($request->user()->can('manage attendance'), 403);
+
         $shift->delete();
 
-        return redirect()
-            ->route('hr.shifts.index')
-            ->with('success', "{$name} shift has been deleted.");
-    }
-
-    public function toggleStatus(Shift $shift): RedirectResponse
-    {
-        $shift->update([
-            'is_active' => ! $shift->is_active,
-        ]);
-
-        $status = $shift->is_active ? 'activated' : 'deactivated';
-
-        return redirect()
-            ->route('hr.shifts.index')
-            ->with('success', "{$shift->name} shift has been {$status}.");
+        return back()->with('success', 'Shift deleted successfully.');
     }
 
     /**
-     * @return array<string, mixed>
+     * Validate Shift Data
      */
-    protected function validateShift(Request $request): array
+    private function validateData(Request $request): array
     {
         $data = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'start_time' => ['required', 'date_format:H:i'],
-            'end_time' => ['required', 'date_format:H:i'],
-            'is_overnight' => ['boolean'],
-            'color' => ['nullable', 'string', 'regex:/^#[0-9A-Fa-f]{6}$/'],
-            'is_active' => ['boolean'],
+            'shift_name' => ['required', 'string', 'max:100'],
+            'shift_code' => ['required', 'string', 'max:20'],
+
+            'description' => ['nullable', 'string'],
+
+            'start_time' => ['nullable', 'date_format:H:i'],
+            'end_time' => ['nullable', 'date_format:H:i'],
+
+            'break_start' => ['nullable', 'date_format:H:i'],
+            'break_end' => ['nullable', 'date_format:H:i'],
+
+            'grace_time' => ['required', 'integer', 'min:0'],
+            'working_hours' => ['required', 'numeric', 'min:0'],
+
+            'late_after' => ['required', 'integer', 'min:0'],
+            'half_day_after' => ['required', 'integer', 'min:0'],
+
+            'minimum_work_hours' => ['required', 'numeric', 'min:0'],
+
+            'color' => ['nullable', 'regex:/^#([A-Fa-f0-9]{6})$/'],
+
+            'status' => ['boolean'],
+            'is_flexible' => ['boolean'],
+            'is_night_shift' => ['boolean'],
         ]);
 
-        $data['is_overnight'] = $request->boolean('is_overnight');
-        $data['is_active'] = $request->boolean('is_active', true);
+        // Handle checkboxes
+        $data['status'] = $request->boolean('status');
+        $data['is_flexible'] = $request->boolean('is_flexible');
+        $data['is_night_shift'] = $request->boolean('is_night_shift');
 
         return $data;
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    protected function toArray(Shift $shift): array
-    {
-        $time = fn ($value) => $value ? Carbon::parse($value)->format('H:i') : null;
-
-        return [
-            'id' => $shift->id,
-            'name' => $shift->name,
-            'start_time' => $time($shift->start_time),
-            'end_time' => $time($shift->end_time),
-            'is_overnight' => $shift->is_overnight,
-            'color' => $shift->color,
-            'is_active' => $shift->is_active,
-        ];
     }
 }

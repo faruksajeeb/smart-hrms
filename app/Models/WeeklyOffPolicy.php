@@ -9,28 +9,16 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class Shift extends Model
+
+class WeeklyOffPolicy extends Model
 {
-    use HasFactory;
-    use SoftDeletes;
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
         'company_id',
-        'shift_name',
-        'shift_code',
+        'policy_name',
+        'policy_code',
         'description',
-        'start_time',
-        'end_time',
-        'break_start',
-        'break_end',
-        'grace_time',
-        'working_hours',
-        'late_after',
-        'half_day_after',
-        'minimum_work_hours',
-        'is_flexible',
-        'is_night_shift',
-        'color',
         'status',
         'created_by',
         'updated_by',
@@ -39,20 +27,27 @@ class Shift extends Model
     protected function casts(): array
     {
         return [
-            'grace_time' => 'integer',
-            'working_hours' => 'decimal:2',
-            'late_after' => 'integer',
-            'half_day_after' => 'integer',
-            'minimum_work_hours' => 'decimal:2',
-            'is_flexible' => 'boolean',
-            'is_night_shift' => 'boolean',
             'status' => 'boolean',
         ];
     }
 
-    public function schedules(): HasMany
+    /*
+    |--------------------------------------------------------------------------
+    | Relationships
+    |--------------------------------------------------------------------------
+    */
+
+    public function company(): BelongsTo
     {
-        return $this->hasMany(ShiftSchedule::class);
+        return $this->belongsTo(
+            MasterDataItem::class,
+            'company_id'
+        );
+    }
+
+    public function days(): HasMany
+    {
+        return $this->hasMany(WeeklyOffPolicyDay::class);
     }
 
     public function creator(): BelongsTo
@@ -64,6 +59,19 @@ class Shift extends Model
     {
         return $this->belongsTo(User::class, 'updated_by');
     }
+
+    public function employeeAssignments(): HasMany
+    {
+        return $this->hasMany(
+            EmployeeWeeklyOffAssignment::class
+        );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Scopes
+    |--------------------------------------------------------------------------
+    */
 
     public function scopeActive(Builder $query): Builder
     {

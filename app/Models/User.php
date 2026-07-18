@@ -14,6 +14,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 #[Fillable(['name', 'email', 'password', 'employee_id', 'status'])]
 #[Hidden(['password', 'remember_token'])]
@@ -78,5 +79,25 @@ class User extends Authenticatable
     {
         return $this->belongsToMany(MasterDataItem::class, 'employee_master_data_item')
             ->withTimestamps();
+    }
+
+    // public function department(): BelongsTo
+    // {
+    //     return $this->belongsTo(Department::class);
+    // }
+
+    public function shiftSchedules(): HasMany
+    {
+        return $this->hasMany(ShiftSchedule::class);
+    }
+
+    public function attendances(): HasMany
+    {
+        return $this->hasMany(Attendance::class);
+    }
+
+    public function swapRequests(): HasMany
+    {
+        return $this->hasMany(ShiftSwapRequest::class, 'requester_id');
     }
 }
