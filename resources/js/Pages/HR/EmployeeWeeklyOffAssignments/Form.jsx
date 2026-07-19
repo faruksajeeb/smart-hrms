@@ -1,24 +1,26 @@
 import { useForm } from "@inertiajs/react";
 
 export default function Form({
+    employee,
     employees = [],
     policies = [],
     assignment = null,
+    currentAssignment = null,
     submitRoute,
     method = "post",
+    isChange = false,
 }) {
-    const { data, setData, post, put, processing, errors } = useForm({
-        employee_id: assignment?.employee_id ?? "",
+    console.log(employee);
+    const { data, setData, post, processing, errors } = useForm({
+        employee_id: employee?.id ?? currentAssignment?.user_id ?? "",
 
-        weekly_off_policy_id: assignment?.weekly_off_policy_id ?? "",
+        weekly_off_policy_id: "",
 
-        effective_from: assignment?.effective_from ?? "",
+        effective_from: "",
 
-        effective_to: assignment?.effective_to ?? "",
+        remarks: "",
 
-        assignment_type: assignment?.assignment_type ?? "manual",
-
-        remarks: assignment?.remarks ?? "",
+        assignment_type: "manual",
     });
 
     function submit(e) {
@@ -33,6 +35,36 @@ export default function Form({
 
     return (
         <form onSubmit={submit} className="space-y-6">
+            {isChange && currentAssignment && (
+                <div className="mb-6 rounded-xl border border-blue-200 bg-blue-50 p-5">
+                    <h3 className="text-lg font-semibold text-blue-900">
+                        Current Assignment
+                    </h3>
+
+                    <div className="mt-4 grid grid-cols-2 gap-4">
+                        <div>
+                            <p className="text-sm text-gray-500">Policy</p>
+
+                            <p className="font-semibold">
+                                {
+                                    currentAssignment.weekly_off_policy
+                                        .policy_name
+                                }
+                            </p>
+                        </div>
+
+                        <div>
+                            <p className="text-sm text-gray-500">
+                                Effective From
+                            </p>
+
+                            <p className="font-semibold">
+                                {currentAssignment.effective_from}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            )}
             <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
                 <div className="border-b border-slate-200 px-6 py-4">
                     <h3 className="text-lg font-semibold text-slate-900">
@@ -45,36 +77,52 @@ export default function Form({
                 </div>
 
                 <div className="grid grid-cols-1 gap-6 p-6 lg:grid-cols-2">
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700">
-                            Employee
-                            <span className="ml-1 text-red-500">*</span>
-                        </label>
+                    {method === "post" ? (
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700">
+                                Employee
+                                <span className="text-red-500">*</span>
+                            </label>
 
-                        <select
-                            value={data.employee_id}
-                            onChange={(e) =>
-                                setData("employee_id", e.target.value)
-                            }
-                            className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
-                        >
-                            <option value="">Select Employee</option>
+                            <select
+                                value={data.employee_id}
+                                onChange={(e) =>
+                                    setData("employee_id", e.target.value)
+                                }
+                                className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2"
+                            >
+                                <option value="">Select Employee</option>
 
-                            {employees.map((employee) => (
-                                <option key={employee.id} value={employee.id}>
-                                    {employee.employee_code}
-                                    {" - "}
-                                    {employee.name}
-                                </option>
-                            ))}
-                        </select>
+                                {employees.map((employee) => (
+                                    <option
+                                        key={employee.id}
+                                        value={employee.id}
+                                    >
+                                        {employee.employee_id} - {employee.name}
+                                    </option>
+                                ))}
+                            </select>
 
-                        {errors.employee_id && (
-                            <p className="mt-1 text-sm text-red-600">
-                                {errors.employee_id}
-                            </p>
-                        )}
-                    </div>
+                            {errors.employee_id && (
+                                <p className="mt-1 text-sm text-red-600">
+                                    {errors.employee_id}
+                                </p>
+                            )}
+                        </div>
+                    ) : (
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700">
+                                Employee
+                            </label>
+
+                            <input
+                                type="text"
+                                readOnly
+                                value={`${employee.employee_id} - ${employee.name}`}
+                                className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-100 px-3 py-2"
+                            />
+                        </div>
+                    )}
                     <div>
                         <label className="block text-sm font-medium text-slate-700">
                             Weekly Off Policy

@@ -262,22 +262,22 @@ export default function Index({
                                             <div className="flex justify-end gap-2">
                                                 <Link
                                                     href={route(
-                                                        "hr.weekly-off-assignments.show",
+                                                        "hr.weekly-off-assignments.history",
                                                         assignment.id,
                                                     )}
                                                     className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-medium hover:bg-slate-100"
                                                 >
-                                                    View
+                                                    History
                                                 </Link>
 
                                                 <Link
                                                     href={route(
-                                                        "hr.weekly-off-assignments.edit",
+                                                        "hr.weekly-off-assignments.change",
                                                         assignment.id,
                                                     )}
                                                     className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700"
                                                 >
-                                                    Edit
+                                                    Change
                                                 </Link>
 
                                                 <button

@@ -35,13 +35,13 @@ class EmployeeWeeklyOffAssignmentController extends Controller
         return Inertia::render('HR/EmployeeWeeklyOffAssignments/Index', [
             'assignments' => $assignments,
             'employees' => User::query()
-                        ->select('id', 'employee_id', 'name')
-                        ->orderBy('name')
-                        ->get(),
+                ->select('id', 'employee_id', 'name')
+                ->orderBy('name')
+                ->get(),
         ]);
     }
 
-   public function create(): Response
+    public function create(): Response
     {
         abort_unless(auth()->user()->can('manage attendance'), 403);
 
@@ -88,37 +88,56 @@ class EmployeeWeeklyOffAssignmentController extends Controller
     }
 
     /**
-     * Show the form for editing the specified assignment.
+     * Show the Change Weekly Off Assignment form.
      */
-    public function edit(
+    public function change(
         EmployeeWeeklyOffAssignment $assignment
     ): Response {
-        abort_unless(auth()->user()->can('manage attendance'), 403);
 
-        $employees = User::where('id', '!=', 0)->pluck('name', 'id')->all();
-        $policies = \App\Models\WeeklyOffPolicy::where('status', true)
-            ->orderBy('policy_name')
-            ->get(['id', 'policy_name', 'policy_code']);
+        abort_unless(
+            auth()->user()->can('manage attendance'),
+            403
+        );
 
-        return Inertia::render('HR/EmployeeWeeklyOffAssignments/Edit', [
-            'assignment' => $assignment,
-            'employees' => $employees,
-            'policies' => $policies,
+        $assignment->load([
+            'employee',
+            'weeklyOffPolicy',
         ]);
+
+        return Inertia::render(
+            'HR/EmployeeWeeklyOffAssignments/Change',
+            [
+
+                // Current assignment (read-only)
+                'currentAssignment' => $assignment,
+
+                // Employee (read-only)
+                'employee' => $assignment->employee,
+
+                // Available policies
+                'policies' => $this->service
+                    ->getAvailablePolicies(
+                        $assignment->employee
+                    ),
+
+            ]
+        );
     }
 
     /**
-     * Update the specified assignment in storage.
+     * Store a new Weekly Off Assignment by closing the current assignment.
      */
-    public function update(
-        UpdateEmployeeWeeklyOffAssignmentRequest $request,
+    public function storeChange(
+        StoreEmployeeWeeklyOffAssignmentRequest $request,
         EmployeeWeeklyOffAssignment $assignment
     ): RedirectResponse {
-        abort_unless(auth()->user()->can('manage attendance'), 403);
 
-        $employee = User::findOrFail($request->employee_id);
+        abort_unless(
+            auth()->user()->can('manage attendance'),
+            403
+        );
 
-        $this->service->update(
+        $this->service->changeAssignment(
             $assignment,
             $request->validated(),
             auth()->id()
@@ -126,7 +145,49 @@ class EmployeeWeeklyOffAssignmentController extends Controller
 
         return redirect()
             ->route('hr.weekly-off-assignments.index')
-            ->with('success', 'Weekly off assignment updated successfully.');
+            ->with(
+                'success',
+                'Weekly off assignment changed successfully.'
+            );
+    }
+
+    /**
+     * Display assignment history for an employee.
+     */
+    public function history(
+        EmployeeWeeklyOffAssignment $assignment
+    ): Response {
+
+        abort_unless(
+            auth()->user()->can('manage attendance'),
+            403
+        );
+
+        $employee = $assignment->employee;
+
+        $history = EmployeeWeeklyOffAssignment::query()
+
+            ->with([
+                'weeklyOffPolicy',
+                'creator',
+            ])
+
+            ->where('user_id', $employee->id)
+
+            ->orderBy('effective_from')
+
+            ->get();
+
+        return Inertia::render(
+            'HR/EmployeeWeeklyOffAssignments/History',
+            [
+
+                'employee' => $employee,
+
+                'history' => $history,
+
+            ]
+        );
     }
 
     /**

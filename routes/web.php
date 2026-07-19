@@ -150,11 +150,74 @@ Route::middleware('auth')->group(function () {
                 [WeeklyOffPolicyController::class, 'clone']
             )->name('weekly-off-policies.clone');
 
-            // ==================== NEW ASSIGNMENT ROUTES ====================
-            // Weekly Off Assignments
-            Route::resource('weekly-off-assignments', EmployeeWeeklyOffAssignmentController::class)
-                
-                ->parameters(['weekly-off-assignments' => 'assignment']);
+
+
+            Route::controller(EmployeeWeeklyOffAssignmentController::class)
+                ->prefix('weekly-off-assignments')
+                ->name('weekly-off-assignments.')
+                ->group(function () {
+
+                    /*
+                |--------------------------------------------------------------------------
+                | List
+                |--------------------------------------------------------------------------
+                */
+
+                    Route::get('/', 'index')
+                        ->name('index');
+
+                    /*
+                |--------------------------------------------------------------------------
+                | Initial Assignment
+                |--------------------------------------------------------------------------
+                */
+
+                    Route::get('/create', 'create')
+                        ->name('create');
+
+                    Route::post('/', 'store')
+                        ->name('store');
+
+                    /*
+                |--------------------------------------------------------------------------
+                | Details
+                |--------------------------------------------------------------------------
+                */
+
+                    Route::get('/{assignment}', 'show')
+                        ->name('show');
+
+                    /*
+                |--------------------------------------------------------------------------
+                | Change Assignment
+                |--------------------------------------------------------------------------
+                */
+
+                    Route::get('/{assignment}/change', 'change')
+                        ->name('change');
+
+                    Route::post('/{assignment}/change', 'storeChange')
+                        ->name('store-change');
+
+                    /*
+                |--------------------------------------------------------------------------
+                | Assignment History
+                |--------------------------------------------------------------------------
+                */
+
+                    Route::get('/{assignment}/history', 'history')
+                        ->name('history');
+
+                    /*
+                |--------------------------------------------------------------------------
+                | Delete (Only if never used)
+                |--------------------------------------------------------------------------
+                */
+
+                    Route::delete('/{assignment}', 'destroy')
+                        ->name('destroy');
+                });
+
 
             // Shift Assignments
             Route::resource('shift-assignments', EmployeeShiftAssignmentController::class)

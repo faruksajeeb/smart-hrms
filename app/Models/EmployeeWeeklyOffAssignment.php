@@ -87,6 +87,18 @@ class EmployeeWeeklyOffAssignment extends Model
     #effective_from
     public function getEffectiveFromAttribute($value)
     {
+        if (is_null($value)) {
+            return null;
+        }
+        return \Carbon\Carbon::parse($value)->format('d-m-Y');  
+    }
+
+    #effective_to
+    public function getEffectiveToAttribute($value)
+    {
+        if (is_null($value)) {
+            return null;
+        }
         return \Carbon\Carbon::parse($value)->format('d-m-Y');  
     }
 }

@@ -3,20 +3,25 @@ import { Head } from "@inertiajs/react";
 import HRLayout from "@/Layouts/HRLayout";
 import Form from "./Form";
 
-export default function Edit({ assignment, policies, employees }) {
+export default function Edit({
+    assignment,
+    employee,
+    policies,
+}) {
     return (
         <HRLayout
             heading="Edit Weekly Off Assignment"
-            subheading="Modify the weekly off assignment details."
+            subheading="Update the employee weekly off assignment."
         >
             <Head title="Edit Weekly Off Assignment" />
+
             <Form
                 assignment={assignment}
-                employees={employees}
+                employee={employee}
                 policies={policies}
                 submitRoute={route(
                     "hr.weekly-off-assignments.update",
-                    assignment.id,
+                    assignment.id
                 )}
                 method="put"
             />

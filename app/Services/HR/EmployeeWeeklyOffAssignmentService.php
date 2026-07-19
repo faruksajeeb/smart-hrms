@@ -51,30 +51,142 @@ class EmployeeWeeklyOffAssignmentService
         array $data,
         ?int $userId = null
     ): EmployeeWeeklyOffAssignment {
+
         return DB::transaction(function () use (
             $assignment,
             $data,
             $userId
         ) {
-            // Validate business rules, ignoring the current assignment for overlap checks
-            $this->validateAssignmentForUpdate($assignment->employee, $data, $assignment->id);
 
-            // If the effective_from is changing, we may need to adjust neighboring assignments
-            if ($assignment->getOriginal('effective_from') !== $data['effective_from']) {
-                $this->closeCurrentAssignment($assignment->employee, $data['effective_from']);
-            }
+            $newStart = Carbon::parse($data['effective_from']);
+
+            // Historical record lock
+            $this->validateEditable($assignment);
+
+            // Timeline overlap validation
+            $this->validateAssignmentForUpdate(
+                $assignment->employee,
+                $data,
+                $assignment->id
+            );
+
+            // Adjust previous assignment
+            $this->adjustPreviousAssignment(
+                $assignment,
+                $newStart
+            );
+
+            // Calculate end date from next assignment
+            $newEnd = $this->calculateEffectiveTo(
+                $assignment,
+                $newStart
+            );
 
             $assignment->update([
-                'weekly_off_policy_id'   => $data['weekly_off_policy_id'],
-                'effective_from'         => $data['effective_from'],
-                'effective_to'           => $data['effective_to'] ?? null,
-                'assignment_type'        => $data['assignment_type'],
-                'remarks'                => $data['remarks'] ?? null,
-                'updated_by'             => $userId,
+
+                'weekly_off_policy_id' => $data['weekly_off_policy_id'],
+
+                'effective_from' => $newStart,
+
+                'effective_to' => $newEnd,
+
+                'assignment_type' => $data['assignment_type'],
+
+                'remarks' => $data['remarks'] ?? null,
+
+                'updated_by' => $userId,
+
             ]);
 
             return $assignment->fresh();
         });
+    }
+
+    /**
+     * Prevent editing historical assignments.
+     */
+    protected function validateEditable(
+        EmployeeWeeklyOffAssignment $assignment
+    ): void {
+
+        // Historical records are locked
+        if (
+            $assignment->effective_to &&
+            Carbon::parse($assignment->effective_to)->lt(today())
+        ) {
+
+            throw ValidationException::withMessages([
+                'effective_from' =>
+                'Historical weekly off assignments cannot be edited.',
+            ]);
+        }
+    }
+
+
+    /**
+     * Adjust previous assignment so there is no overlap.
+     */
+    protected function adjustPreviousAssignment(
+        EmployeeWeeklyOffAssignment $assignment,
+        Carbon $newStart
+    ): void {
+
+        $previous = EmployeeWeeklyOffAssignment::query()
+
+            ->where('user_id', $assignment->user_id)
+
+            ->where('id', '<>', $assignment->id)
+
+            ->where('effective_from', '<', $newStart)
+
+            ->orderByDesc('effective_from')
+
+            ->first();
+
+        if (!$previous) {
+            return;
+        }
+
+        $previous->update([
+
+            'effective_to' => $newStart
+                ->copy()
+                ->subDay(),
+
+            'updated_by' => auth()->id(),
+
+        ]);
+    }
+
+
+    /**
+     * Determine effective_to from the next assignment.
+     */
+    protected function calculateEffectiveTo(
+        EmployeeWeeklyOffAssignment $assignment,
+        Carbon $newStart
+    ): ?Carbon {
+
+        $next = EmployeeWeeklyOffAssignment::query()
+
+            ->where('user_id', $assignment->user_id)
+
+            ->where('id', '<>', $assignment->id)
+
+            ->where('effective_from', '>', $newStart)
+
+            ->orderBy('effective_from')
+
+            ->first();
+
+        if (!$next) {
+
+            return null;
+        }
+
+        return Carbon::parse(
+            $next->effective_from
+        )->subDay();
     }
 
     /**
@@ -161,9 +273,9 @@ class EmployeeWeeklyOffAssignmentService
      * Sets its effective_to to the day before the new effective_from.
      */
     protected function closeCurrentAssignment(
-    User $employee,
-    string|Carbon $effectiveFrom
-): void {
+        User $employee,
+        string|Carbon $effectiveFrom
+    ): void {
         $effectiveFrom = Carbon::parse($effectiveFrom)->startOfDay();
 
         // Find the assignment that is currently effective (no end date or end date >= today)
@@ -185,5 +297,98 @@ class EmployeeWeeklyOffAssignmentService
                 'updated_by'   => auth()->id() ?? null,
             ]);
         }
+    }
+
+    /**
+     * Change Weekly Off Assignment
+     *
+     * Previous assignment becomes historical.
+     * New assignment becomes current.
+     */
+    public function changeAssignment(
+        EmployeeWeeklyOffAssignment $currentAssignment,
+        array $data,
+        ?int $userId = null
+    ): EmployeeWeeklyOffAssignment {
+
+        return DB::transaction(function () use (
+            $currentAssignment,
+            $data,
+            $userId
+        ) {
+
+            $newStart = Carbon::parse(
+                $data['effective_from']
+            )->startOfDay();
+
+            /*
+        |--------------------------------------------------------------------------
+        | Validation
+        |--------------------------------------------------------------------------
+        */
+
+            if ($newStart->lte(
+                Carbon::parse(
+                    $currentAssignment->effective_from
+                )
+            )) {
+
+                throw ValidationException::withMessages([
+
+                    'effective_from' =>
+
+                    'Effective date must be after the current assignment start date.',
+
+                ]);
+            }
+
+            /*
+        |--------------------------------------------------------------------------
+        | Close Current Assignment
+        |--------------------------------------------------------------------------
+        */
+
+            $currentAssignment->update([
+
+                'effective_to' => $newStart
+                    ->copy()
+                    ->subDay(),
+
+                'updated_by' => $userId,
+
+            ]);
+
+            /*
+        |--------------------------------------------------------------------------
+        | Create New Assignment
+        |--------------------------------------------------------------------------
+        */
+
+            return EmployeeWeeklyOffAssignment::create([
+
+                'user_id' => $currentAssignment->user_id,
+
+                'weekly_off_policy_id' =>
+                $data['weekly_off_policy_id'],
+
+                'effective_from' =>
+                $newStart,
+
+                'effective_to' => null,
+
+                'assignment_type' =>
+                $data['assignment_type'],
+
+                'remarks' =>
+                $data['remarks'] ?? null,
+
+                'created_by' =>
+                $userId,
+
+                'updated_by' =>
+                $userId,
+
+            ]);
+        });
     }
 }
