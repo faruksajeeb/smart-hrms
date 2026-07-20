@@ -57,6 +57,25 @@ class EmployeeShiftAssignment extends Model
         return $this->belongsTo(User::class, 'updated_by');
     }
 
+        #accessors
+    #effective_from
+    public function getEffectiveFromAttribute($value)
+    {
+        if (is_null($value)) {
+            return null;
+        }
+        return \Carbon\Carbon::parse($value)->format('d-m-Y');  
+    }
+
+    #effective_to
+    public function getEffectiveToAttribute($value)
+    {
+        if (is_null($value)) {
+            return null;
+        }
+        return \Carbon\Carbon::parse($value)->format('d-m-Y');  
+    }
+
     /*
     |--------------------------------------------------------------------------
     | Scopes
@@ -81,4 +100,6 @@ class EmployeeShiftAssignment extends Model
                     ->orWhereDate('effective_to', '>=', $date);
             });
     }
+
+
 }

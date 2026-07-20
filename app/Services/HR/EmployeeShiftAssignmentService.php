@@ -19,26 +19,67 @@ class EmployeeShiftAssignmentService
         array $data,
         ?int $userId = null
     ): EmployeeShiftAssignment {
-        return DB::transaction(function () use ($employee, $data, $userId) {
-            // Validate business rules (no overlapping assignments)
+
+        return DB::transaction(function () use (
+            $employee,
+            $data,
+            $userId
+        ) {
+
             $this->validateAssignment($employee, $data);
 
-            // If there is a current assignment that is effective and overlaps, we may need to end it.
-            // For simplicity, we assume that assigning a new shift replaces the current one from the effective date.
-            // We'll set the end date of the current assignment to the day before the new start date.
-            $this->rescheduleCurrentAssignment($employee, $data['effective_from']);
+            // Prevent duplicate active assignment
+            $this->validateDuplicateShift($employee, $data);
+
+            $this->closeCurrentAssignment(
+                $employee,
+                $data['effective_from']
+            );
 
             return EmployeeShiftAssignment::create([
-                'user_id' => $employee->id,
-                'shift_id' => $data['shift_id'],
-                'effective_from' => $data['effective_from'],
-                'effective_to' => $data['effective_to'] ?? null,
+
+                'user_id'         => $employee->id,
+                'shift_id'        => $data['shift_id'],
+                'effective_from'  => $data['effective_from'],
+                'effective_to'    => null, // Let timeline manage this
                 'assignment_type' => $data['assignment_type'],
-                'remarks' => $data['remarks'] ?? null,
-                'created_by' => $userId,
-                'updated_by' => $userId,
+                'remarks'         => $data['remarks'] ?? null,
+                'created_by'      => $userId,
+                'updated_by'      => $userId,
+
             ]);
         });
+    }
+
+    protected function validateDuplicateShift(
+        User $employee,
+        array $data
+    ): void {
+
+        $currentAssignment = EmployeeShiftAssignment::query()
+
+            ->where('user_id', $employee->id)
+
+            ->whereNull('effective_to')
+
+            ->first();
+
+        if (!$currentAssignment) {
+            return;
+        }
+
+        if (
+            $currentAssignment->shift_id == $data['shift_id']
+        ) {
+
+            throw ValidationException::withMessages([
+
+                'shift_id' =>
+
+                'The employee is already assigned to this shift.',
+
+            ]);
+        }
     }
 
     /**
@@ -49,19 +90,31 @@ class EmployeeShiftAssignmentService
         array $data,
         ?int $userId = null
     ): EmployeeShiftAssignment {
-        return DB::transaction(function () use ($assignment, $data, $userId) {
-            // Validate business rules, ignoring the current assignment for overlap checks
-            $this->validateAssignmentForUpdate($assignment->employee, $data, $assignment->id);
 
-            // If the effective date is changing, we may need to adjust surrounding assignments
-            if ($assignment->getOriginal('effective_from') !== $data['effective_from']) {
-                $this->rescheduleCurrentAssignment($assignment->employee, $data['effective_from']);
-            }
+        return DB::transaction(function () use ($assignment, $data, $userId) {
+
+            $newStart = Carbon::parse($data['effective_from']);
+
+            // Historical record lock
+            $this->validateEditable($assignment);
+
+            // Timeline overlap validation
+            $this->validateAssignmentForUpdate(
+                $assignment->employee,
+                $data,
+                $assignment->id
+            );
+
+            // Adjust previous assignment
+            $this->adjustPreviousAssignment($assignment, $newStart);
+
+            // Calculate end date from next assignment
+            $newEnd = $this->calculateEffectiveTo($assignment, $newStart);
 
             $assignment->update([
                 'shift_id' => $data['shift_id'],
-                'effective_from' => $data['effective_from'],
-                'effective_to' => $data['effective_to'] ?? null,
+                'effective_from' => $newStart,
+                'effective_to' => $newEnd,
                 'assignment_type' => $data['assignment_type'],
                 'remarks' => $data['remarks'] ?? null,
                 'updated_by' => $userId,
@@ -86,8 +139,8 @@ class EmployeeShiftAssignmentService
     public function getAvailableShifts(User $employee)
     {
         return Shift::where('status', true)
-            ->orderBy('name')
-            ->get(['id', 'name', 'code']);
+            ->orderBy('shift_name')
+            ->get(['id', 'shift_name', 'shift_code']);
     }
 
     /**
@@ -112,9 +165,16 @@ class EmployeeShiftAssignmentService
 
         if ($overlap) {
             throw ValidationException::withMessages([
-                'effective_from' => 'The selected date range overlaps with an existing shift assignment.',
+                'effective_from' => 'The selected date range overlaps with an existing assignment.',
             ]);
         }
+
+        // Optional: ensure effective_from is not in the past (if business rule)
+        // if ($effectiveFrom->isPast()) {
+        //     throw ValidationException::withMessages([
+        //         'effective_from' => 'Effective date cannot be in the past.',
+        //     ]);
+        // }
     }
 
     /**
@@ -144,12 +204,14 @@ class EmployeeShiftAssignmentService
     }
 
     /**
-     * End the currently active assignment (if any) before the new effective date.
+     * Close the currently active assignment (if any) before the new effective date.
      * Sets its effective_to to the day before the new effective_from.
      */
-    protected function rescheduleCurrentAssignment(User $employee, Carbon $effectiveFrom): void
-    {
-        $effectiveFrom = $effectiveFrom->copy()->startOfDay();
+    protected function closeCurrentAssignment(
+        User $employee,
+        string|Carbon $effectiveFrom
+    ): void {
+        $effectiveFrom = Carbon::parse($effectiveFrom)->startOfDay();
 
         // Find the assignment that is currently effective (no end date or end date >= today)
         // and whose effective_from is before the new effective_from.
@@ -170,5 +232,182 @@ class EmployeeShiftAssignmentService
                 'updated_by' => auth()->id() ?? null,
             ]);
         }
+    }
+
+    /**
+     * Prevent editing historical assignments.
+     */
+    protected function validateEditable(EmployeeShiftAssignment $assignment): void
+    {
+        // Historical records are locked
+        if (
+            $assignment->effective_to &&
+            Carbon::parse($assignment->effective_to)->lt(today())
+        ) {
+
+            throw ValidationException::withMessages([
+                'effective_from' =>
+                'Historical shift assignments cannot be edited.',
+            ]);
+        }
+    }
+
+
+    /**
+     * Adjust previous assignment so there is no overlap.
+     */
+    protected function adjustPreviousAssignment(
+        EmployeeShiftAssignment $assignment,
+        Carbon $newStart
+    ): void {
+
+        $previous = EmployeeShiftAssignment::query()
+
+            ->where('user_id', $assignment->user_id)
+
+            ->where('id', '<>', $assignment->id)
+
+            ->where('effective_from', '<', $newStart)
+
+            ->orderByDesc('effective_from')
+
+            ->first();
+
+        if (!$previous) {
+            return;
+        }
+
+        $previous->update([
+
+            'effective_to' => $newStart
+                ->copy()
+                ->subDay(),
+
+            'updated_by' => auth()->id(),
+
+        ]);
+    }
+
+
+    /**
+     * Determine effective_to from the next assignment.
+     */
+    protected function calculateEffectiveTo(
+        EmployeeShiftAssignment $assignment,
+        Carbon $newStart
+    ): ?Carbon {
+
+        $next = EmployeeShiftAssignment::query()
+
+            ->where('user_id', $assignment->user_id)
+
+            ->where('id', '<>', $assignment->id)
+
+            ->where('effective_from', '>', $newStart)
+
+            ->orderBy('effective_from')
+
+            ->first();
+
+        if (!$next) {
+
+            return null;
+        }
+
+        return Carbon::parse(
+            $next->effective_from
+        )->subDay();
+    }
+
+    /**
+     * Change Shift Assignment
+     *
+     * Previous assignment becomes historical.
+     * New assignment becomes current.
+     */
+    public function changeAssignment(
+        EmployeeShiftAssignment $currentAssignment,
+        array $data,
+        ?int $userId = null
+    ): EmployeeShiftAssignment {
+
+        return DB::transaction(function () use (
+            $currentAssignment,
+            $data,
+            $userId
+        ) {
+
+            $newStart = Carbon::parse(
+                $data['effective_from']
+            )->startOfDay();
+
+            /*
+        |--------------------------------------------------------------------------
+        | Validation
+        |--------------------------------------------------------------------------
+        */
+
+            if ($newStart->lte(
+                Carbon::parse(
+                    $currentAssignment->effective_from
+                )
+            )) {
+
+                throw ValidationException::withMessages([
+
+                    'effective_from' =>
+
+                    'Effective date must be after the current assignment start date.',
+
+                ]);
+            }
+
+            /*
+        |--------------------------------------------------------------------------
+        | Close Current Assignment
+        |--------------------------------------------------------------------------
+        */
+
+            $currentAssignment->update([
+
+                'effective_to' => $newStart
+                    ->copy()
+                    ->subDay(),
+
+                'updated_by' => $userId,
+
+            ]);
+
+            /*
+        |--------------------------------------------------------------------------
+        | Create New Assignment
+        |--------------------------------------------------------------------------
+        */
+
+            return EmployeeShiftAssignment::create([
+
+                'user_id' => $currentAssignment->user_id,
+
+                'shift_id' => $data['shift_id'],
+
+                'effective_from' =>
+                $newStart,
+
+                'effective_to' => null,
+
+                'assignment_type' =>
+                $data['assignment_type'],
+
+                'remarks' =>
+                $data['remarks'] ?? null,
+
+                'created_by' =>
+                $userId,
+
+                'updated_by' =>
+                $userId,
+
+            ]);
+        });
     }
 }

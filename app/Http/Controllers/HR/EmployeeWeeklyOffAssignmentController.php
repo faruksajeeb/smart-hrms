@@ -75,7 +75,7 @@ class EmployeeWeeklyOffAssignmentController extends Controller
         abort_unless(auth()->user()->can('manage attendance'), 403);
 
         $employee = User::findOrFail($request->employee_id);
-
+// dd($request->validated());
         $this->service->store(
             $employee,
             $request->validated(),

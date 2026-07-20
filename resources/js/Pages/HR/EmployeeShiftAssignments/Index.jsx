@@ -25,7 +25,7 @@ export default function Index({
                                 Assignments
                             </h2>
                             <Link
-                                href={route("shift-assignments.create")}
+                                href={route("hr.shift-assignments.create")}
                                 className="inline-flex items-center rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
                             >
                                 + Assign Shift
@@ -66,23 +66,29 @@ export default function Index({
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
                                                 {assignment.employee?.name}
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
-                                                {assignment.effective_from}
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
-                                                {assignment.effective_to ?? "—"}
-                                            </td>
+                                             {/* Effective From */}
+
+                                        <td className="px-5 py-4 text-sm">
+                                            {assignment.effective_from}
+                                        </td>
+
+                                        {/* Effective To */}
+
+                                        <td className="px-5 py-4 text-sm">
+                                            {assignment.effective_to ??
+                                                "Present"}
+                                        </td>
                                             <td className="px-6 py-4 flex items-center space-x-3">
                                                 <div className="flex-shrink-0 h-8 w-8 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs font-medium">
-                                                    {assignment.shift?.code?.substring(0, 2) ?? "??"
+                                                    {assignment.shift?.shift_code?.substring(0, 2) ?? "??"
                                                     }
                                                 </div>
                                                 <div>
                                                     <p className="text-sm font-medium text-slate-900">
-                                                        {assignment.shift?.name ?? "Unknown"}
+                                                        {assignment.shift?.shift_name ?? "Unknown"}
                                                     </p>
                                                     <p className="text-xs text-slate-500">
-                                                        Code: {assignment.shift?.code}
+                                                        Code: {assignment.shift?.shift_code}
                                                     </p>
                                                 </div>
                                             </td>
@@ -97,10 +103,23 @@ export default function Index({
                                             </td>
                                             <td className="px-6 py-4 text-sm font-medium space-x-2">
                                                 <Link
-                                                    href={route("shift-assignments.edit", assignment.id)}
-                                                    className="text-indigo-600 hover:text-indigo-900"
+                                                    href={route(
+                                                        "hr.shift-assignments.history",
+                                                        assignment.id,
+                                                    )}
+                                                    className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-medium hover:bg-slate-100"
                                                 >
-                                                    Edit
+                                                    History
+                                                </Link>
+
+                                                <Link
+                                                    href={route(
+                                                        "hr.shift-assignments.change",
+                                                        assignment.id,
+                                                    )}
+                                                    className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700"
+                                                >
+                                                    Change
                                                 </Link>
                                                 <button
                                                     onClick={() => {
@@ -110,7 +129,7 @@ export default function Index({
                                                             )
                                                         ) {
                                                             router.delete(
-                                                                route("shift-assignments.destroy", assignment.id),
+                                                                route("hr.shift-assignments.destroy", assignment.id),
                                                                 {
                                                                     preserveScroll: true,
                                                                     onSuccess: () => {

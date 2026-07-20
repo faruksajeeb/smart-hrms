@@ -10,7 +10,6 @@ use App\Models\Shift;
 use App\Models\User;
 use App\Services\HR\EmployeeShiftAssignmentService;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -25,7 +24,10 @@ class EmployeeShiftAssignmentController extends Controller
      */
     public function index(): Response
     {
-        $this->authorize('viewAny', EmployeeShiftAssignment::class);
+        abort_unless(
+            auth()->user()->can('manage attendance'),
+            403
+        );
 
         $assignments = EmployeeShiftAssignment::query()
             ->with(['shift', 'creator', 'employee'])
@@ -34,7 +36,10 @@ class EmployeeShiftAssignmentController extends Controller
 
         return Inertia::render('HR/EmployeeShiftAssignments/Index', [
             'assignments' => $assignments,
-            'employees' => User::where('id', '!=', 0)->pluck('name', 'id')->all(),
+            'employees' => User::query()
+                ->select('id', 'employee_id', 'name')
+                ->orderBy('employee_id')
+                ->get(),
         ]);
     }
 
@@ -43,16 +48,21 @@ class EmployeeShiftAssignmentController extends Controller
      */
     public function create(): Response
     {
-        $this->authorize('create', EmployeeShiftAssignment::class);
-
-        $employees = User::where('id', '!=', 0)->pluck('name', 'id')->all();
-        $shifts = $this->service->getAvailableShifts(new User()); // We'll fix this below
-
-        // Get shifts directly from the model since the service doesn't really need the employee
-        $shifts = Shift::where('status', true)
-            ->orderBy('name')
-            ->get(['id', 'name', 'code']);
-
+        abort_unless(
+            auth()->user()->can('manage attendance'),
+            403
+        );
+        
+        $employees = User::query()
+                ->select('id', 'employee_id', 'name')
+                ->orderBy('employee_id')
+                ->get();
+        
+        $shifts = Shift::query()
+                ->where('status', true)
+                ->orderBy('shift_name')
+                ->get(['id', 'shift_name', 'shift_code']);
+// dd($shifts);
         return Inertia::render('HR/EmployeeShiftAssignments/Create', [
             'employees' => $employees,
             'shifts' => $shifts,
@@ -63,9 +73,12 @@ class EmployeeShiftAssignmentController extends Controller
      * Store a newly created assignment.
      */
     public function store(
-        EmployeeShiftAssignmentRequest $request
+        StoreEmployeeShiftAssignmentRequest $request
     ): RedirectResponse {
-        $this->authorize('create', EmployeeShiftAssignment::class);
+        abort_unless(
+            auth()->user()->can('manage attendance'),
+            403
+        );
 
         $employee = User::findOrFail($request->employee_id);
 
@@ -76,29 +89,33 @@ class EmployeeShiftAssignmentController extends Controller
         );
 
         return redirect()
-            ->route('shift-assignments.index')
+            ->route('hr.shift-assignments.index')
             ->with('success', 'Shift assigned successfully.');
     }
 
     /**
      * Show the form for editing the specified assignment.
      */
-    public function edit(
-        EmployeeShiftAssignment $assignment
-    ): Response {
-        $this->authorize('update', $assignment);
+    public function edit(EmployeeShiftAssignment $assignment): Response
+    {
+        abort_unless(
+            auth()->user()->can('manage attendance'),
+            403
+        );
 
-        $employees = User::where('id', '!=', 0)->pluck('name', 'id')->all();
-        $shifts = $this->service->getAvailableShifts(new User()); // Again, we'll fix
-
-        $shifts = Shift::where('status', true)
-            ->orderBy('name')
-            ->get(['id', 'name', 'code']);
+        $assignment->load(['employee', 'shift']);
 
         return Inertia::render('HR/EmployeeShiftAssignments/Edit', [
             'assignment' => $assignment,
-            'employees' => $employees,
-            'shifts' => $shifts,
+            'employees' => User::query()
+                ->select('id', 'employee_id', 'name')
+                ->orderBy('employee_id')
+                ->get(),
+
+            'shifts' => Shift::query()
+                ->where('status', true)
+                ->orderBy('name')
+                ->get(['id', 'name', 'code']),
         ]);
     }
 
@@ -106,10 +123,13 @@ class EmployeeShiftAssignmentController extends Controller
      * Update the specified assignment in storage.
      */
     public function update(
-        EmployeeShiftAssignmentRequest $request,
+        UpdateEmployeeShiftAssignmentRequest $request,
         EmployeeShiftAssignment $assignment
     ): RedirectResponse {
-        $this->authorize('update', $assignment);
+        abort_unless(
+            auth()->user()->can('manage attendance'),
+            403
+        );
 
         $employee = User::findOrFail($request->employee_id);
 
@@ -120,20 +140,90 @@ class EmployeeShiftAssignmentController extends Controller
         );
 
         return redirect()
-            ->route('shift-assignments.index')
+            ->route('hr.shift-assignments.index')
             ->with('success', 'Shift assignment updated successfully.');
+    }
+
+    /**
+     * Show the form for changing the shift assignment.
+     */
+    public function change(EmployeeShiftAssignment $assignment): Response
+    {
+        abort_unless(
+            auth()->user()->can('manage attendance'),
+            403
+        );
+
+        $assignment->load(['employee', 'shift']);
+
+        $data =  [
+            'currentAssignment' => $assignment,
+            'employee' => $assignment->employee,
+            'shifts' => $this->service->getAvailableShifts($assignment->employee),
+        ];
+        // dd($data);
+        return Inertia::render('HR/EmployeeShiftAssignments/Change', $data);
+    }
+
+    /**
+     * Store a new Shift Assignment by closing the current assignment.
+     */
+    public function storeChange(
+        StoreEmployeeShiftAssignmentRequest $request,
+        EmployeeShiftAssignment $assignment
+    ): RedirectResponse {
+        abort_unless(
+            auth()->user()->can('manage attendance'),
+            403
+        );
+
+        $this->service->changeAssignment(
+            $assignment,
+            $request->validated(),
+            auth()->id()
+        );
+
+        return redirect()
+            ->route('hr.shift-assignments.index')
+            ->with('success', 'Shift assignment changed successfully.');
+    }
+
+    /**
+     * Display assignment history for an employee.
+     */
+    public function history(EmployeeShiftAssignment $assignment): Response
+    {
+        abort_unless(
+            auth()->user()->can('manage attendance'),
+            403
+        );
+
+        $employee = $assignment->employee;
+
+        $history = EmployeeShiftAssignment::query()
+            ->with(['shift', 'creator'])
+            ->where('user_id', $employee->id)
+            ->orderBy('effective_from')
+            ->get();
+
+        return Inertia::render('HR/EmployeeShiftAssignments/History', [
+            'employee' => $employee,
+            'history' => $history,
+        ]);
     }
 
     /**
      * Remove the specified assignment from storage.
      */
-    public function destroy(
-        EmployeeShiftAssignment $assignment
-    ): RedirectResponse {
-        $this->authorize('delete', $assignment);
+    public function destroy(EmployeeShiftAssignment $assignment): RedirectResponse
+    {
+        abort_unless(
+            auth()->user()->can('manage attendance'),
+            403
+        );
 
         $this->service->delete($assignment);
 
-        return back()->with('success', 'Shift assignment removed successfully.');
+        return back()->with('success', 'Assignment removed successfully.');
     }
 }

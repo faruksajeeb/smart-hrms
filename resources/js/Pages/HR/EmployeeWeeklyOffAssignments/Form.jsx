@@ -14,13 +14,12 @@ export default function Form({
     const { data, setData, post, processing, errors } = useForm({
         employee_id: employee?.id ?? currentAssignment?.user_id ?? "",
 
-        weekly_off_policy_id: "",
+        weekly_off_policy_id: assignment?.weekly_off_policy_id ?? "",
 
-        effective_from: "",
-
-        remarks: "",
-
-        assignment_type: "manual",
+        effective_from: assignment?.effective_from ?? "",
+        effective_to: assignment?.effective_to ?? "",
+        assignment_type: assignment?.assignment_type ?? "manual",
+        remarks: assignment?.remarks ?? "",
     });
 
     function submit(e) {

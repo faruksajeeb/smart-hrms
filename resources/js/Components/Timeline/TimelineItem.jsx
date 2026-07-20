@@ -8,6 +8,7 @@ export default function TimelineItem({
 
     item,
     isLast,
+    getTitle
 
 }) {
 
@@ -35,7 +36,7 @@ export default function TimelineItem({
 
                     <h4 className="font-semibold text-lg">
 
-                        {item.weekly_off_policy.policy_name}
+                        {getTitle(item)}
 
                     </h4>
 

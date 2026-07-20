@@ -16,9 +16,11 @@ export default function Create({
             <Form
                 employees={employees}
                 shifts={shifts}
+                submitRoute={route("hr.shift-assignments.store")}
+                method="post"
                 onSuccess={() => {
                     window.visit(
-                        route("shift-assignments.index")
+                        route("hr.shift-assignments.index")
                     );
                 }}
             />

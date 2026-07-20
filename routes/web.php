@@ -220,12 +220,39 @@ Route::middleware('auth')->group(function () {
 
 
             // Shift Assignments
-            Route::resource('shift-assignments', EmployeeShiftAssignmentController::class)
-                ->except(['show'])
-                ->parameters(['shift-assignments' => 'assignment']);
+            Route::controller(EmployeeShiftAssignmentController::class)
+                ->prefix('shift-assignments')
+                ->name('shift-assignments.')
+                ->group(function () {
+
+                    Route::get('/', 'index')
+                        ->name('index');
+
+                    Route::get('/create', 'create')
+                        ->name('create');
+
+                    Route::post('/', 'store')
+                        ->name('store');
+
+                    Route::get('/{assignment}/edit', 'edit')
+                        ->name('edit');
+
+                    Route::put('/{assignment}', 'update')
+                        ->name('update');
+
+                    Route::delete('/{assignment}', 'destroy')
+                        ->name('destroy');
+
+                    Route::get('/{assignment}/change', 'change')
+                        ->name('change');
+
+                    Route::post('/{assignment}/change', 'storeChange')
+                        ->name('store-change');
+
+                    Route::get('/{assignment}/history', 'history')
+                        ->name('history');
+                });
             // =========
-
-
         });
         Route::get('/payroll', function () {
             return Inertia::render('Modules/Show', [

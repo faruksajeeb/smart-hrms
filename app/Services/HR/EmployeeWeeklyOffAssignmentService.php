@@ -27,6 +27,9 @@ class EmployeeWeeklyOffAssignmentService
             // Validate business rules (overlaps, etc.)
             $this->validateAssignment($employee, $data);
 
+            // Prevent duplicate active assignment
+            $this->validateDuplicateAssignment($employee, $data);
+
             // Close any open assignment that overlaps the new start date
             $this->closeCurrentAssignment($employee, $data['effective_from']);
 
@@ -41,6 +44,39 @@ class EmployeeWeeklyOffAssignmentService
                 'updated_by'             => $userId,
             ]);
         });
+    }
+
+    protected function validateDuplicateAssignment(
+        User $employee,
+        array $data
+    ): void {
+
+        $currentAssignment = EmployeeWeeklyOffAssignment::query()
+
+            ->where('user_id', $employee->id)
+
+            ->whereNull('effective_to')
+
+            ->first();
+
+        if (!$currentAssignment) {
+            return;
+        }
+
+        if (
+            $currentAssignment->weekly_off_policy_id == $data['weekly_off_policy_id']
+        ) {
+
+            throw ValidationException::withMessages([
+
+                'weekly_off_policy_id' =>
+
+                    'The employee is already assigned to this shift.',
+
+            ]);
+
+        }
+
     }
 
     /**
@@ -213,6 +249,7 @@ class EmployeeWeeklyOffAssignmentService
      */
     protected function validateAssignment(User $employee, array $data): void
     {
+        // dd($data);
         $effectiveFrom = Carbon::parse($data['effective_from']);
         $effectiveTo = $data['effective_to'] ? Carbon::parse($data['effective_to']) : null;
 

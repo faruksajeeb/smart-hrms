@@ -21,7 +21,7 @@ class StoreEmployeeShiftAssignmentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'user_id' => [
+            'employee_id' => [
                 'required',
                 'integer',
                 Rule::exists('users', 'id'),
@@ -67,7 +67,7 @@ class StoreEmployeeShiftAssignmentRequest extends FormRequest
     public function attributes(): array
     {
         return [
-            'user_id' => 'Employee',
+            'employee_id' => 'Employee',
             'shift_id' => 'Shift',
             'effective_from' => 'Effective From',
             'effective_to' => 'Effective To',
@@ -93,8 +93,8 @@ class StoreEmployeeShiftAssignmentRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         $this->merge([
-            // Ensure user_id is set from route parameter if not provided
-            'user_id' => $this->user_id ?? $this->route('employee')?->id,
+            // Ensure employee_id is set from route parameter if not provided
+            'employee_id' => $this->employee_id ?? $this->route('assignment')?->employee_id ?? $this->route('employee')?->id,
         ]);
     }
 }

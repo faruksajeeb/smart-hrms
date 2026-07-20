@@ -18,11 +18,11 @@ export default function Edit({
                 assignment={assignment}
                 employees={employees}
                 shifts={shifts}
-                onSuccess={() => {
-                    window.visit(
-                        route("shift-assignments.index")
-                    );
-                }}
+                submitRoute={route(
+                    "hr.shift-assignments.update",
+                    assignment.id
+                )}
+                method="put"
             />
         </HRLayout>
     );

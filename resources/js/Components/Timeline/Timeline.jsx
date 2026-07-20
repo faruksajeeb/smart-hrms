@@ -4,6 +4,7 @@ from "./TimelineItem";
 export default function Timeline({
 
     items = [],
+    getTitle
 
 }) {
 
@@ -14,16 +15,10 @@ export default function Timeline({
             {items.map((item, index) => (
 
                 <TimelineItem
-
                     key={item.id}
-
                     item={item}
-
-                    isLast={
-                        index ===
-                        items.length - 1
-                    }
-
+                    isLast={index === items.length - 1}
+                    getTitle={getTitle}
                 />
 
             ))}

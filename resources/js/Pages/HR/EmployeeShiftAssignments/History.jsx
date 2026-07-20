@@ -6,10 +6,10 @@ import Timeline from "@/Components/Timeline/Timeline";
 export default function History({ employee, history }) {
     return (
         <HRLayout
-            heading="Weekly Off Assignment History"
+            heading="Shift Assignment History"
             subheading="Complete assignment timeline"
         >
-            <Head title="Weekly Off History" />
+            <Head title="Shift Assignment History" />
 
             {/* Employee Card */}
 
@@ -44,8 +44,8 @@ export default function History({ employee, history }) {
 
                 <Timeline
                     items={history}
-                    getTitle={(item) => item.weekly_off_policy.policy_name}
-                    subtitle={(item) => item.assignment_type}
+                    getTitle={(item) => item.shift.shift_name}
+                    subtitle={(item) => item.shift.shift_code}
                     actor={(item) => item.creator?.name}
                     startDate={(item) => item.effective_from}
                     endDate={(item) => item.effective_to}
@@ -56,16 +56,16 @@ export default function History({ employee, history }) {
             <div className="mt-6 flex justify-end gap-3">
                 <Link
                     href={route(
-                        "hr.weekly-off-assignments.change",
+                        "hr.shift-assignments.change",
                         history.find((x) => x.effective_to === null)?.id,
                     )}
                     className="rounded-lg bg-indigo-600 px-5 py-2 text-white hover:bg-indigo-700"
                 >
-                    Change Weekly Off
+                    Change Shift
                 </Link>
 
                 <Link
-                    href={route("hr.weekly-off-assignments.index")}
+                    href={route("hr.shift-assignments.index")}
                     className="rounded-lg border px-5 py-2 hover:bg-gray-100"
                 >
                     Back
