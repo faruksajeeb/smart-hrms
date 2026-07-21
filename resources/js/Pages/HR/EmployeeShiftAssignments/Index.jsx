@@ -1,13 +1,39 @@
 import { useEffect, useState } from "react";
 import { Head, Link, router } from "@inertiajs/react";
+import Swal from "sweetalert2";
 
 import HRLayout from "@/Layouts/HRLayout";
 
-export default function Index({
-    assignments,
-    employees,
-}) {
+export default function Index({ assignments, employees }) {
     const [showCreateModal, setShowCreateModal] = useState(false);
+
+    const deleteAssignment = (id) => {
+        Swal.fire({
+            title: "Are you sure?",
+            text: "You won't be able to recover this assignment!",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "#d33",
+            cancelButtonColor: "#6b7280",
+            confirmButtonText: "Yes, delete it!",
+            cancelButtonText: "Cancel",
+        }).then((result) => {
+            if (result.isConfirmed) {
+                router.delete(route("hr.shift-assignments.destroy", id), {
+                    preserveScroll: true,
+                    onSuccess: () => {
+                        Swal.fire({
+                            icon: "success",
+                            title: "Deleted!",
+                            text: "Assignment deleted successfully.",
+                            timer: 2000,
+                            showConfirmButton: false,
+                        });
+                    },
+                });
+            }
+        });
+    };
 
     return (
         <HRLayout
@@ -62,41 +88,54 @@ export default function Index({
                                 </thead>
                                 <tbody className="bg-white divide-y divide-slate-200">
                                     {assignments.data.map((assignment) => (
-                                        <tr key={assignment.id} className="hover:bg-slate-50">
+                                        <tr
+                                            key={assignment.id}
+                                            className="hover:bg-slate-50"
+                                        >
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
                                                 {assignment.employee?.name}
                                             </td>
-                                             {/* Effective From */}
+                                            {/* Effective From */}
 
-                                        <td className="px-5 py-4 text-sm">
-                                            {assignment.effective_from}
-                                        </td>
+                                            <td className="px-5 py-4 text-sm">
+                                                {assignment.effective_from}
+                                            </td>
 
-                                        {/* Effective To */}
+                                            {/* Effective To */}
 
-                                        <td className="px-5 py-4 text-sm">
-                                            {assignment.effective_to ??
-                                                "Present"}
-                                        </td>
+                                            <td className="px-5 py-4 text-sm">
+                                                {assignment.effective_to ??
+                                                    "Present"}
+                                            </td>
                                             <td className="px-6 py-4 flex items-center space-x-3">
                                                 <div className="flex-shrink-0 h-8 w-8 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs font-medium">
-                                                    {assignment.shift?.shift_code?.substring(0, 2) ?? "??"
-                                                    }
+                                                    {assignment.shift?.shift_code?.substring(
+                                                        0,
+                                                        2,
+                                                    ) ?? "??"}
                                                 </div>
                                                 <div>
                                                     <p className="text-sm font-medium text-slate-900">
-                                                        {assignment.shift?.shift_name ?? "Unknown"}
+                                                        {assignment.shift
+                                                            ?.shift_name ??
+                                                            "Unknown"}
                                                     </p>
                                                     <p className="text-xs text-slate-500">
-                                                        Code: {assignment.shift?.shift_code}
+                                                        Code:{" "}
+                                                        {
+                                                            assignment.shift
+                                                                ?.shift_code
+                                                        }
                                                     </p>
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4 text-sm text-slate-900">
                                                 {assignment.assignment_type
                                                     .charAt(0)
-                                                    .toUpperCase() + assignment.assignment_type.slice(1)
-                                                    .toLowerCase()}
+                                                    .toUpperCase() +
+                                                    assignment.assignment_type
+                                                        .slice(1)
+                                                        .toLowerCase()}
                                             </td>
                                             <td className="px-6 py-4 text-sm text-slate-900">
                                                 {assignment.remarks ?? "—"}
@@ -122,23 +161,11 @@ export default function Index({
                                                     Change
                                                 </Link>
                                                 <button
-                                                    onClick={() => {
-                                                        if (
-                                                            window.confirm(
-                                                                "Are you sure you want to delete this assignment?"
-                                                            )
-                                                        ) {
-                                                            router.delete(
-                                                                route("hr.shift-assignments.destroy", assignment.id),
-                                                                {
-                                                                    preserveScroll: true,
-                                                                    onSuccess: () => {
-                                                                        // Optionally show a success toast; for now, rely on flash message
-                                                                    },
-                                                                }
-                                                            );
-                                                        }
-                                                    }}
+                                                    onClick={() =>
+                                                        deleteAssignment(
+                                                            assignment.id,
+                                                        )
+                                                    }
                                                     className="text-red-600 hover:text-red-900"
                                                 >
                                                     Delete
@@ -180,7 +207,9 @@ export default function Index({
                                         <button
                                             key={index}
                                             disabled={!link.url}
-                                            onClick={() => router.visit(link.url)}
+                                            onClick={() =>
+                                                router.visit(link.url)
+                                            }
                                             disabled={!link.url}
                                             className={`px-3 py-1 mx-1 text-sm leading-5 border rounded transition-colors ${
                                                 link.active

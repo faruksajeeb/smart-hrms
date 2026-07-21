@@ -27,6 +27,7 @@ function DetailItem({ label, value }) {
             <p className="mt-2 text-sm font-medium text-slate-800">
                 {display(value)}
             </p>
+            {/* <button href="#" style="text-decoration:unedrline">Change</button> */}
         </div>
     );
 }

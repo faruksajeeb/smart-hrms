@@ -80,6 +80,12 @@ class EmployeeShiftAssignmentService
 
             ]);
         }
+
+        if ($currentAssignment) {
+            throw ValidationException::withMessages([
+                'employee_id' => 'This employee already has an active shift assignment. ',
+            ]);
+        }
     }
 
     /**

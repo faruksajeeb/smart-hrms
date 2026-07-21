@@ -77,6 +77,12 @@ class EmployeeWeeklyOffAssignmentService
 
         }
 
+        if ($currentAssignment) {
+            throw ValidationException::withMessages([
+                'employee_id' => 'This employee already has an active weekly off assignment. ',
+            ]);
+        }
+
     }
 
     /**

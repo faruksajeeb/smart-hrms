@@ -1,6 +1,7 @@
 import { Head, Link, router } from "@inertiajs/react";
 import { useState } from "react";
 import HRLayout from "@/Layouts/HRLayout";
+import Swal from "sweetalert2";
 
 export default function Index({
     assignments,
@@ -28,6 +29,35 @@ export default function Index({
             },
         );
     };
+
+
+    const deleteAssignment = (id) => {
+            Swal.fire({
+                title: "Are you sure?",
+                text: "You won't be able to recover this assignment!",
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonColor: "#d33",
+                cancelButtonColor: "#6b7280",
+                confirmButtonText: "Yes, delete it!",
+                cancelButtonText: "Cancel",
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    router.delete(route("hr.weekly-off-assignments.destroy", id), {
+                        preserveScroll: true,
+                        onSuccess: () => {
+                            Swal.fire({
+                                icon: "success",
+                                title: "Deleted!",
+                                text: "Assignment deleted successfully.",
+                                timer: 2000,
+                                showConfirmButton: false,
+                            });
+                        },
+                    });
+                }
+            });
+        };
 
     return (
         <HRLayout
@@ -281,21 +311,12 @@ export default function Index({
                                                 </Link>
 
                                                 <button
-                                                    onClick={() => {
-                                                        if (
-                                                            confirm(
-                                                                "Delete this assignment?",
-                                                            )
-                                                        ) {
-                                                            router.delete(
-                                                                route(
-                                                                    "hr.weekly-off-assignments.destroy",
-                                                                    assignment.id,
-                                                                ),
-                                                            );
-                                                        }
-                                                    }}
-                                                    className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-700"
+                                                    onClick={() =>
+                                                        deleteAssignment(
+                                                            assignment.id,
+                                                        )
+                                                    }
+                                                    className="text-red-600 hover:text-red-900"
                                                 >
                                                     Delete
                                                 </button>
