@@ -84,6 +84,12 @@ Route::middleware('auth')->group(function () {
                 ->name('employees.terminate');
             Route::post('/employees/{employee}/rejoin', [HREmployeeController::class, 'rejoin'])
                 ->name('employees.rejoin');
+            Route::post('/employees/{employee}/transfer', [HREmployeeController::class, 'transfer'])
+                ->name('employees.transfer');
+            Route::post('/employees/{employee}/promote', [HREmployeeController::class, 'promote'])
+                ->name('employees.promote');
+            Route::post('/employees/{employee}/increment', [HREmployeeController::class, 'increment'])
+                ->name('employees.increment');
             Route::get('/employees/{employee}/documents/{document}/download', [HREmployeeController::class, 'downloadDocument'])
                 ->name('employees.documents.download');
             Route::get('/employees/{employee}/documents/{document}/view', [HREmployeeController::class, 'viewDocument'])

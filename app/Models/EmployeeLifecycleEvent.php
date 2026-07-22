@@ -32,6 +32,12 @@ class EmployeeLifecycleEvent extends Model
 
     public const TYPE_REJOIN = 'rejoin';
 
+    public const TYPE_TRANSFER = 'transfer';
+
+    public const TYPE_PROMOTION = 'promotion';
+
+    public const TYPE_INCREMENT = 'increment';
+
     public const TYPE_PROFILE = 'profile_update';
 
     protected function casts(): array

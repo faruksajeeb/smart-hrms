@@ -347,6 +347,118 @@ class EmployeeController extends Controller
             ->with('success', "{$employee->name} has been rejoined and reactivated.");
     }
 
+    public function transfer(Request $request, User $employee): RedirectResponse
+    {
+        $validated = $request->validate([
+            'department_master_data_id' => ['nullable', 'integer', 'exists:master_data_items,id'],
+            'department' => ['nullable', 'string', 'max:255'],
+            'effective_on' => ['required', 'date'],
+            'remarks' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        DB::transaction(function () use ($employee, $validated) {
+            $update = ['updated_by' => auth()->id()];
+
+            if ($validated['department_master_data_id'] !== null) {
+                $item = MasterDataItem::find($validated['department_master_data_id']);
+                $update['department'] = $item?->name;
+            } elseif ($validated['department'] !== null) {
+                $update['department'] = $validated['department'];
+            }
+
+            $employee->employeeProfile()->updateOrCreate(
+                ['user_id' => $employee->id],
+                $update
+            );
+
+            $this->recordEvent(
+                $employee,
+                EmployeeLifecycleEvent::TYPE_TRANSFER,
+                'Department transferred',
+                $validated['effective_on'],
+                [
+                    'department' => $update['department'] ?? null,
+                    'master_data_item_id' => $validated['department_master_data_id'] ?? null,
+                ],
+                $validated['remarks'],
+            );
+        });
+
+        return back()->with('success', "{$employee->name}'s department transfer has been recorded.");
+    }
+
+    public function promote(Request $request, User $employee): RedirectResponse
+    {
+        $validated = $request->validate([
+            'designation_master_data_id' => ['nullable', 'integer', 'exists:master_data_items,id'],
+            'designation' => ['nullable', 'string', 'max:255'],
+            'effective_on' => ['required', 'date'],
+            'remarks' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        DB::transaction(function () use ($employee, $validated) {
+            $update = ['updated_by' => auth()->id()];
+
+            if ($validated['designation_master_data_id'] !== null) {
+                $item = MasterDataItem::find($validated['designation_master_data_id']);
+                $update['designation'] = $item?->name;
+            } elseif ($validated['designation'] !== null) {
+                $update['designation'] = $validated['designation'];
+            }
+
+            $employee->employeeProfile()->updateOrCreate(
+                ['user_id' => $employee->id],
+                $update
+            );
+
+            $this->recordEvent(
+                $employee,
+                EmployeeLifecycleEvent::TYPE_PROMOTION,
+                'Employee promoted',
+                $validated['effective_on'],
+                [
+                    'designation' => $update['designation'] ?? null,
+                    'master_data_item_id' => $validated['designation_master_data_id'] ?? null,
+                ],
+                $validated['remarks'],
+            );
+        });
+
+        return back()->with('success', "{$employee->name}'s promotion has been recorded.");
+    }
+
+    public function increment(Request $request, User $employee): RedirectResponse
+    {
+        $validated = $request->validate([
+            'salary_amount' => ['required', 'numeric', 'min:0'],
+            'effective_on' => ['required', 'date'],
+            'remarks' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        DB::transaction(function () use ($employee, $validated) {
+            $employee->employeeProfile()->updateOrCreate(
+                ['user_id' => $employee->id],
+                [
+                    'salary_amount' => $validated['salary_amount'],
+                    'updated_by' => auth()->id(),
+                ]
+            );
+
+            $this->recordEvent(
+                $employee,
+                EmployeeLifecycleEvent::TYPE_INCREMENT,
+                'Salary incremented',
+                $validated['effective_on'],
+                [
+                    'salary_amount' => $validated['salary_amount'],
+                ],
+                $validated['remarks'],
+            );
+        });
+
+        return back()->with('success', "{$employee->name}'s salary increment has been recorded.");
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -490,6 +602,22 @@ class EmployeeController extends Controller
                     'download_url' => route('hr.employees.documents.download', [$employee->id, $document->id]),
                     'view_url' => route('hr.employees.documents.view', [$employee->id, $document->id]),
                 ])
+                ->all(),
+            'transfer_department_options' => MasterDataItem::query()
+                ->where('category', MasterDataItem::CATEGORY_DEPARTMENT)
+                ->where('status', MasterDataItem::STATUS_ACTIVE)
+                ->orderBy('name')
+                ->get(['id', 'name'])
+                ->map(fn ($item) => ['id' => $item->id, 'label' => $item->name])
+                ->values()
+                ->all(),
+            'promote_designation_options' => MasterDataItem::query()
+                ->where('category', MasterDataItem::CATEGORY_DESIGNATION)
+                ->where('status', MasterDataItem::STATUS_ACTIVE)
+                ->orderBy('name')
+                ->get(['id', 'name'])
+                ->map(fn ($item) => ['id' => $item->id, 'label' => $item->name])
+                ->values()
                 ->all(),
         ];
     }

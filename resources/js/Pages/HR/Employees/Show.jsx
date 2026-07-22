@@ -37,6 +37,9 @@ function DetailItem({ label, value, children }) {
 export default function Show({ employee, events }) {
     const [terminationOpen, setTerminationOpen] = useState(false);
     const [rejoinOpen, setRejoinOpen] = useState(false);
+    const [transferOpen, setTransferOpen] = useState(false);
+    const [promoteOpen, setPromoteOpen] = useState(false);
+    const [incrementOpen, setIncrementOpen] = useState(false);
     const [pendingAction, setPendingAction] = useState(null);
 
     const terminationForm = useForm({
@@ -53,6 +56,24 @@ export default function Show({ employee, events }) {
         notes: "",
     });
 
+    const transferForm = useForm({
+        department_master_data_id: "",
+        effective_on: "",
+        remarks: "",
+    });
+
+    const promoteForm = useForm({
+        designation_master_data_id: "",
+        effective_on: "",
+        remarks: "",
+    });
+
+    const incrementForm = useForm({
+        salary_amount: "",
+        effective_on: "",
+        remarks: "",
+    });
+
     const requestTerminate = (event) => {
         event.preventDefault();
         setPendingAction("terminate");
@@ -62,6 +83,12 @@ export default function Show({ employee, events }) {
         event.preventDefault();
         setPendingAction("rejoin");
     };
+
+    const requestTransfer = () => setTransferOpen(true);
+
+    const requestPromote = () => setPromoteOpen(true);
+
+    const requestIncrement = () => setIncrementOpen(true);
 
     const confirmAction = () => {
         if (pendingAction === "terminate") {
@@ -88,6 +115,12 @@ export default function Show({ employee, events }) {
         setRejoinOpen(false);
         setPendingAction(null);
     };
+
+    const closeTransfer = () => setTransferOpen(false);
+
+    const closePromote = () => setPromoteOpen(false);
+
+    const closeIncrement = () => setIncrementOpen(false);
 
     return (
         <HRLayout
@@ -131,6 +164,30 @@ export default function Show({ employee, events }) {
                                     employee.profile.employment_type,
                                 )}
                             />
+                            <DetailItem
+                                label="Department"
+                                value={display(employee.profile.department)}
+                            >
+                                <button
+                                    type="button"
+                                    onClick={requestTransfer}
+                                    className="mt-3 inline-flex items-center rounded-xl bg-sky-700 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-sky-800"
+                                >
+                                    Transfer
+                                </button>
+                            </DetailItem>
+                            <DetailItem
+                                label="Designation"
+                                value={display(employee.profile.designation)}
+                            >
+                                <button
+                                    type="button"
+                                    onClick={requestPromote}
+                                    className="mt-3 inline-flex items-center rounded-xl bg-sky-700 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-sky-800"
+                                >
+                                    Promote
+                                </button>
+                            </DetailItem>
                             <DetailItem
                                 label="Joining Date"
                                 value={employee.profile.joining_date}
@@ -254,7 +311,15 @@ export default function Show({ employee, events }) {
                             <DetailItem
                                 label="Salary"
                                 value={employee.salary}
-                            />
+                            >
+                                <button
+                                    type="button"
+                                    onClick={requestIncrement}
+                                    className="mt-3 inline-flex items-center rounded-xl bg-sky-700 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-sky-800"
+                                >
+                                    Increment
+                                </button>
+                            </DetailItem>
                             <DetailItem
                                 label="Leave Policy"
                                 value={employee.profile.leave_policy_name}
@@ -689,6 +754,69 @@ export default function Show({ employee, events }) {
                             </PrimaryButton>
                         )}
                     </div>
+                </div>
+            </Modal>
+
+            <Modal show={transferOpen} onClose={closeTransfer} maxWidth="2xl">
+                <div className="p-6">
+                    <h2 className="text-lg font-semibold text-slate-950">Transfer Department</h2>
+                    <p className="mt-1 text-sm text-slate-500">Transfer {employee.name} to a new department.</p>
+                    <form onSubmit={(e) => { e.preventDefault(); transferForm.post(route('hr.employees.transfer', employee.id), { onSuccess: closeTransfer }); }} className="mt-6 space-y-4">
+                        <SearchSelect id="department_master_data_id" label="New Department" value={transferForm.data.department_master_data_id} options={employee.transfer_department_options} onChange={(value) => transferForm.setData('department_master_data_id', value)} error={transferForm.errors.department_master_data_id} placeholder="Search department..." />
+                        <DatePickerInput id="effective_on" label="Effective Date" value={transferForm.data.effective_on} onChange={(value) => transferForm.setData('effective_on', value)} error={transferForm.errors.effective_on} />
+                        <div>
+                            <InputLabel htmlFor="transfer_remarks" value="Remarks" />
+                            <textarea id="transfer_remarks" value={transferForm.data.remarks} onChange={(e) => transferForm.setData('remarks', e.target.value)} rows="3" className="mt-2 block w-full rounded-2xl border-slate-200 bg-slate-50 px-4 py-3 text-sm focus:border-slate-400 focus:ring-slate-400" />
+                            <InputError className="mt-2" message={transferForm.errors.remarks} />
+                        </div>
+                        <div className="flex justify-end gap-3">
+                            <SecondaryButton onClick={closeTransfer}>Cancel</SecondaryButton>
+                            <PrimaryButton disabled={transferForm.processing} className="rounded-2xl bg-sky-700 px-5 py-3 hover:bg-sky-800">Transfer</PrimaryButton>
+                        </div>
+                    </form>
+                </div>
+            </Modal>
+
+            <Modal show={promoteOpen} onClose={closePromote} maxWidth="2xl">
+                <div className="p-6">
+                    <h2 className="text-lg font-semibold text-slate-950">Promote Employee</h2>
+                    <p className="mt-1 text-sm text-slate-500">Promote {employee.name} to a new designation.</p>
+                    <form onSubmit={(e) => { e.preventDefault(); promoteForm.post(route('hr.employees.promote', employee.id), { onSuccess: closePromote }); }} className="mt-6 space-y-4">
+                        <SearchSelect id="designation_master_data_id" label="New Designation" value={promoteForm.data.designation_master_data_id} options={employee.promote_designation_options} onChange={(value) => promoteForm.setData('designation_master_data_id', value)} error={promoteForm.errors.designation_master_data_id} placeholder="Search designation..." />
+                        <DatePickerInput id="effective_on" label="Effective Date" value={promoteForm.data.effective_on} onChange={(value) => promoteForm.setData('effective_on', value)} error={promoteForm.errors.effective_on} />
+                        <div>
+                            <InputLabel htmlFor="promote_remarks" value="Remarks" />
+                            <textarea id="promote_remarks" value={promoteForm.data.remarks} onChange={(e) => promoteForm.setData('remarks', e.target.value)} rows="3" className="mt-2 block w-full rounded-2xl border-slate-200 bg-slate-50 px-4 py-3 text-sm focus:border-slate-400 focus:ring-slate-400" />
+                            <InputError className="mt-2" message={promoteForm.errors.remarks} />
+                        </div>
+                        <div className="flex justify-end gap-3">
+                            <SecondaryButton onClick={closePromote}>Cancel</SecondaryButton>
+                            <PrimaryButton disabled={promoteForm.processing} className="rounded-2xl bg-sky-700 px-5 py-3 hover:bg-sky-800">Promote</PrimaryButton>
+                        </div>
+                    </form>
+                </div>
+            </Modal>
+
+            <Modal show={incrementOpen} onClose={closeIncrement} maxWidth="2xl">
+                <div className="p-6">
+                    <h2 className="text-lg font-semibold text-slate-950">Salary Increment</h2>
+                    <p className="mt-1 text-sm text-slate-500">Increment salary for {employee.name}.</p>
+                    <form onSubmit={(e) => { e.preventDefault(); incrementForm.post(route('hr.employees.increment', employee.id), { onSuccess: closeIncrement }); }} className="mt-6 space-y-4">
+                        <div>
+                            <InputLabel htmlFor="salary_amount" value="New Salary Amount" />
+                            <TextInput id="salary_amount" type="number" step="0.01" value={incrementForm.data.salary_amount} onChange={(e) => incrementForm.setData('salary_amount', e.target.value)} error={incrementForm.errors.salary_amount} className="mt-2 block w-full rounded-2xl border-slate-200 bg-slate-50 px-4 py-3" />
+                        </div>
+                        <DatePickerInput id="effective_on" label="Effective Date" value={incrementForm.data.effective_on} onChange={(value) => incrementForm.setData('effective_on', value)} error={incrementForm.errors.effective_on} />
+                        <div>
+                            <InputLabel htmlFor="increment_remarks" value="Remarks" />
+                            <textarea id="increment_remarks" value={incrementForm.data.remarks} onChange={(e) => incrementForm.setData('remarks', e.target.value)} rows="3" className="mt-2 block w-full rounded-2xl border-slate-200 bg-slate-50 px-4 py-3 text-sm focus:border-slate-400 focus:ring-slate-400" />
+                            <InputError className="mt-2" message={incrementForm.errors.remarks} />
+                        </div>
+                        <div className="flex justify-end gap-3">
+                            <SecondaryButton onClick={closeIncrement}>Cancel</SecondaryButton>
+                            <PrimaryButton disabled={incrementForm.processing} className="rounded-2xl bg-sky-700 px-5 py-3 hover:bg-sky-800">Increment Salary</PrimaryButton>
+                        </div>
+                    </form>
                 </div>
             </Modal>
         </HRLayout>
