@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
     'effective_from',
     'effective_to',
     'assignment_type',
+    'is_current',
     'remarks',
     'created_by',
     'updated_by',

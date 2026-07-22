@@ -68,6 +68,8 @@ class StoreEmployeeRequest extends FormRequest
             'address' => ['nullable', 'string', 'max:2000'],
             'skills' => ['nullable', 'string', 'max:5000'],
             'experience_summary' => ['nullable', 'string', 'max:5000'],
+            'shift_id' => ['nullable', 'integer', Rule::exists('shifts', 'id')],
+            'weekly_off_policy_id' => ['nullable', 'integer', Rule::exists('weekly_off_policies', 'id')],
             'joining_date' => ['nullable', 'date'],
             'probation_starts_on' => ['nullable', 'date'],
             'probation_ends_on' => ['nullable', 'date', 'after_or_equal:probation_starts_on'],

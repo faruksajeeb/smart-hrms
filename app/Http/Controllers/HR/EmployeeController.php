@@ -11,8 +11,12 @@ use App\Http\Requests\HR\UpdateEmployeeRequest;
 use App\Models\EmployeeLifecycleEvent;
 use App\Models\EmployeeDocument;
 use App\Models\EmployeeProfile;
+use App\Models\EmployeeShiftAssignment;
+use App\Models\EmployeeWeeklyOffAssignment;
 use App\Models\MasterDataItem;
+use App\Models\Shift;
 use App\Models\User;
+use App\Models\WeeklyOffPolicy;
 use App\Services\CvExtractionService;
 use App\Services\EmployeeMasterDataService;
 use Illuminate\Http\RedirectResponse;
@@ -125,6 +129,35 @@ class EmployeeController extends Controller
             $employee->employeeProfile()->create($this->profilePayload($request));
             $this->employeeMasterData->syncTags($employee, $request->all());
             $this->storeDocuments($employee, $request);
+
+            if ($request->filled('shift_id')) {
+                EmployeeShiftAssignment::create([
+                    'user_id' => $employee->id,
+                    'shift_id' => $request->shift_id,
+                    'effective_from' => $request->date('joining_date'),
+                    'effective_to' => null,
+                    'assignment_type' => 'initial',
+                    'is_current' => true,
+                    'remarks' => null,
+                    'created_by' => auth()->id(),
+                    'updated_by' => auth()->id(),
+                ]);
+            }
+
+            if ($request->filled('weekly_off_policy_id')) {
+                EmployeeWeeklyOffAssignment::create([
+                    'user_id' => $employee->id,
+                    'weekly_off_policy_id' => $request->weekly_off_policy_id,
+                    'effective_from' => $request->date('joining_date'),
+                    'effective_to' => null,
+                    'assignment_type' => 'initial',
+                    'is_current' => true,
+                    'remarks' => null,
+                    'created_by' => auth()->id(),
+                    'updated_by' => auth()->id(),
+                ]);
+            }
+
             $this->recordEvent($employee, EmployeeLifecycleEvent::TYPE_ONBOARDING, 'Employee onboarded', $request->date('joining_date'), [
                 'department' => $request->input('department'),
                 'designation' => $request->input('designation'),
@@ -141,8 +174,19 @@ class EmployeeController extends Controller
 
     public function show(User $employee): Response
     {
-        $employee->load(['employeeProfile', 'employeeLifecycleEvents.creator:id,name', 'masterDataItems']);
+        $employee->load([
+            'employeeProfile',
+            'employeeLifecycleEvents.creator:id,name',
+            'masterDataItems',
+            'shiftAssignments' => fn ($q) => $q->where('is_current', true),
+            'shiftAssignments.shift',
+            'weeklyOffAssignments' => fn ($q) => $q->where('is_current', true),
+            'weeklyOffAssignments.weeklyOffPolicy',
+            'weeklyOffAssignments.weeklyOffPolicy.days',
+        ]);
         $this->loadDocumentsIfAvailable($employee);
+
+        // dd($this->employeeDetail($employee));
 
         return Inertia::render('HR/Employees/Show', [
             'employee' => $this->employeeDetail($employee),
@@ -363,6 +407,41 @@ class EmployeeController extends Controller
                 'marital_status' => $profile->marital_status,
                 'qualification' => $profile->qualification,
                 'joining_date' => $profile->joining_date?->toDateString(),
+                'shift_id' => optional($employee->shiftAssignments()->where('is_current', true)->first())->shift_id,
+                'weekly_off_policy_id' => optional($employee->weeklyOffAssignments()->where('is_current', true)->first())->weekly_off_policy_id,
+                'current_shift_assignment_id' => optional($employee->shiftAssignments()->where('is_current', true)->first())->id,
+                'current_weekly_off_assignment_id' => optional($employee->weeklyOffAssignments()->where('is_current', true)->first())->id,
+                'current_shift_name' => optional($employee->shiftAssignments()->where('is_current', true)->first())->shift?->shift_name,
+                'current_weekly_off_policy_name' => optional($employee->weeklyOffAssignments()->where('is_current', true)->first())->weeklyOffPolicy?->policy_name,
+                'current_shift_details' => (function () use ($employee) {
+                    $assignment = $employee->shiftAssignments()->where('is_current', true)->first();
+                    if (! $assignment || ! $assignment->shift) {
+                        return null;
+                    }
+
+                    return [
+                        'shift_name' => $assignment->shift->shift_name,
+                        'shift_code' => $assignment->shift->shift_code,
+                        'start_time' => $assignment->shift->start_time,
+                        'end_time' => $assignment->shift->end_time,
+                        'working_hours' => $assignment->shift->working_hours,
+                        'grace_time' => $assignment->shift->grace_time,
+                        'is_flexible' => $assignment->shift->is_flexible,
+                    ];
+                })(),
+                'current_weekly_off_details' => (function () use ($employee) {
+                    $assignment = $employee->weeklyOffAssignments()->where('is_current', true)->first();
+                    if (! $assignment || ! $assignment->weeklyOffPolicy) {
+                        return null;
+                    }
+
+                    return [
+                        'policy_name' => $assignment->weeklyOffPolicy->policy_name,
+                        'policy_code' => $assignment->weeklyOffPolicy->policy_code,
+                        'description' => $assignment->weeklyOffPolicy->description,
+                        'days' => $assignment->weeklyOffPolicy->days->map(fn ($d) => $d->day_of_week)->all(),
+                    ];
+                })(),
                 'probation_starts_on' => $profile->probation_starts_on?->toDateString(),
                 'probation_ends_on' => $profile->probation_ends_on?->toDateString(),
                 'probation_status' => $profile->probation_status,
@@ -598,6 +677,34 @@ class EmployeeController extends Controller
                 ->pluck('department')
                 ->values()
                 ->all(),
+            'shifts' => Shift::query()
+                ->where('status', true)
+                ->orderBy('shift_name')
+                ->get(['id', 'shift_name', 'shift_code', 'start_time', 'end_time', 'working_hours', 'is_flexible', 'grace_time'])
+                ->map(fn ($shift) => [
+                    'id' => $shift->id,
+                    'label' => "{$shift->shift_name} ({$shift->shift_code})",
+                    'start_time' => $shift->start_time,
+                    'end_time' => $shift->end_time,
+                    'working_hours' => $shift->working_hours,
+                    'is_flexible' => $shift->is_flexible,
+                    'grace_time' => $shift->grace_time,
+                ])
+                ->values()
+                ->all(),
+            'weeklyOffPolicies' => WeeklyOffPolicy::query()
+                ->where('status', true)
+                ->orderBy('policy_name')
+                ->with(['days'])
+                ->get(['id', 'policy_name', 'policy_code', 'description'])
+                ->map(fn ($policy) => [
+                    'id' => $policy->id,
+                    'label' => "{$policy->policy_name} ({$policy->policy_code})",
+                    'description' => $policy->description,
+                    'days' => $policy->days->map(fn ($d) => $d->day_of_week)->all(),
+                ])
+                ->values()
+                ->all(),
             'masterData' => $this->employeeMasterData->formOptions(),
         ];
     }
@@ -624,6 +731,8 @@ class EmployeeController extends Controller
             'marital_status' => '',
             'qualification' => '',
             'joining_date' => '',
+            'shift_id' => '',
+            'weekly_off_policy_id' => '',
             'probation_starts_on' => '',
             'probation_ends_on' => '',
             'probation_status' => EmployeeProfile::PROBATION_PENDING,

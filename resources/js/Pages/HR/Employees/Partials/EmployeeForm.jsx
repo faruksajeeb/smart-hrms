@@ -78,6 +78,13 @@ export default function EmployeeForm({
     const [cvMessage, setCvMessage] = useState('');
     const [cvError, setCvError] = useState('');
 
+    const selectedShift = (options.shifts ?? []).find((s) => String(s.id) === String(data.shift_id)) ?? null;
+
+    const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+    const selectedWeeklyOff = (options.weeklyOffPolicies ?? []).find((p) => String(p.id) === String(data.weekly_off_policy_id)) ?? null;
+    const weeklyOffDayNames = (selectedWeeklyOff?.days ?? []).map((d) => DAY_NAMES[d] ?? `Day ${d}`).join(', ');
+
     const applyCvData = (payload) => {
         Object.entries(payload.data ?? {}).forEach(([field, value]) => {
             if (value !== null && value !== undefined && value !== '' && field in data) {
@@ -284,6 +291,42 @@ export default function EmployeeForm({
                 </div>
             </section>
 
+            {!isEdit && (
+                <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                    <h2 className="text-lg font-semibold text-slate-950">Attendance Setup</h2>
+                    <p className="mt-1 text-sm text-slate-500">
+                        Assign shift and weekly off schedule for attendance tracking.
+                    </p>
+                    <div className="mt-6 grid gap-5 md:grid-cols-2">
+                        <div>
+                            <SearchSelect id="shift_id" label="Shift" value={data.shift_id} options={options.shifts} onChange={(value) => setData('shift_id', value)} error={errors.shift_id} placeholder="Search shift..." />
+                            {selectedShift && (
+                                <div className="mt-3 rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Shift Details</p>
+                                    <div className="mt-2 space-y-1 text-sm text-slate-600">
+                                        <p><span className="font-medium">Time:</span> {selectedShift.start_time} - {selectedShift.end_time}</p>
+                                        <p><span className="font-medium">Hours:</span> {selectedShift.working_hours}h</p>
+                                        <p><span className="font-medium">Grace:</span> {selectedShift.grace_time} min</p>
+                                        {selectedShift.is_flexible ? <p className="text-emerald-700">Flexible shift</p> : null}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                        <div>
+                            <SearchSelect id="weekly_off_policy_id" label="Weekly Off" value={data.weekly_off_policy_id} options={options.weeklyOffPolicies} onChange={(value) => setData('weekly_off_policy_id', value)} error={errors.weekly_off_policy_id} placeholder="Search weekly off policy..." />
+                            {selectedWeeklyOff && (
+                                <div className="mt-3 rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Weekly Off Details</p>
+                                    <div className="mt-2 space-y-1 text-sm text-slate-600">
+                                        {selectedWeeklyOff.description ? <p>{selectedWeeklyOff.description}</p> : null}
+                                        <p><span className="font-medium">Off Days:</span> {weeklyOffDayNames}</p>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </section>
+            )}
 
             <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                 <h2 className="text-lg font-semibold text-slate-950">Personal Information</h2>

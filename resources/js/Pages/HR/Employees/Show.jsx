@@ -18,7 +18,9 @@ const titleCase = (value) =>
 
 const display = (value) => value || "Not set";
 
-function DetailItem({ label, value }) {
+const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+function DetailItem({ label, value, children }) {
     return (
         <div className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
@@ -27,7 +29,7 @@ function DetailItem({ label, value }) {
             <p className="mt-2 text-sm font-medium text-slate-800">
                 {display(value)}
             </p>
-            {/* <button href="#" style="text-decoration:unedrline">Change</button> */}
+            {children}
         </div>
     );
 }
@@ -141,6 +143,92 @@ export default function Show({ employee, events }) {
                                 label="Emergency Contact"
                                 value={`${display(employee.profile.emergency_contact_name)} · ${display(employee.profile.emergency_contact_phone)}`}
                             />
+                        </div>
+                    </section>
+
+                    <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                        <h2 className="text-lg font-semibold text-slate-950">
+                            Attendance Setup
+                        </h2>
+                        <div className="mt-6 grid gap-4 md:grid-cols-2">
+                            <DetailItem
+                                label="Shift"
+                                value={employee.profile.current_shift_name || "Not set"}
+                            >
+                                {employee.profile.current_shift_details && (
+                                    <div className="mt-3 rounded-2xl border border-slate-100 bg-white p-3">
+                                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Shift Details</p>
+                                        <div className="mt-2 space-y-1 text-sm text-slate-600">
+                                            <p><span className="font-medium">Time:</span> {employee.profile.current_shift_details.start_time} - {employee.profile.current_shift_details.end_time}</p>
+                                            <p><span className="font-medium">Hours:</span> {employee.profile.current_shift_details.working_hours}h</p>
+                                            <p><span className="font-medium">Grace:</span> {employee.profile.current_shift_details.grace_time} min</p>
+                                            {employee.profile.current_shift_details.is_flexible ? <p className="text-emerald-700">Flexible shift</p> : null}
+                                        </div>
+                                    </div>
+                                )}
+                                {employee.profile.current_shift_assignment_id ? (
+                                    <Link
+                                        href={route(
+                                            "hr.shift-assignments.change",
+                                            employee.profile.current_shift_assignment_id,
+                                        )}
+                                        className="mt-3 inline-flex items-center rounded-xl bg-sky-700 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-sky-800"
+                                    >
+                                        Change Shift
+                                    </Link>
+                                ):(
+                                    <Link
+                                        href={route(
+                                            "hr.shift-assignments.create",
+                                        )}
+                                        className="mt-3 inline-flex items-center rounded-xl bg-sky-700 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-sky-800"
+                                    >
+                                        Set Shift
+                                    </Link>
+                                )}
+                            </DetailItem>
+                            <DetailItem
+                                label="Weekly Off"
+                                value={
+                                    employee.profile
+                                        .current_weekly_off_policy_name || "Not set"
+                                }
+                            >
+                                {employee.profile.current_weekly_off_details && (
+                                    <div className="mt-3 rounded-2xl border border-slate-100 bg-white p-3">
+                                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Weekly Off Details</p>
+                                        <div className="mt-2 space-y-1 text-sm text-slate-600">
+                                            {employee.profile.current_weekly_off_details.description ? (
+                                                <p>{employee.profile.current_weekly_off_details.description}</p>
+                                            ) : null}
+                                            <p>
+                                                <span className="font-medium">Off Days:</span>{' '}
+                                                {(employee.profile.current_weekly_off_details.days ?? []).map((d) => DAY_NAMES[d] ?? `Day ${d}`).join(', ')}
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+                                {employee.profile.current_weekly_off_assignment_id ? (
+                                    <Link
+                                        href={route(
+                                            "hr.weekly-off-assignments.change",
+                                            employee.profile.current_weekly_off_assignment_id,
+                                        )}
+                                        className="mt-3 inline-flex items-center rounded-xl bg-sky-700 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-sky-800"
+                                    >
+                                        Change Weekly Off
+                                    </Link>
+                                ) : (
+                                    <Link
+                                        href={route(
+                                            "hr.weekly-off-assignments.create"
+                                        )}
+                                        className="mt-3 inline-flex items-center rounded-xl bg-sky-700 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-sky-800"
+                                    >
+                                        Set Weekly Off
+                                    </Link>
+                                )}
+                            </DetailItem>
                         </div>
                     </section>
 

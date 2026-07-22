@@ -280,9 +280,18 @@ export default function Form({
                         </label>
 
                         <p className="mt-1 font-semibold text-slate-900">
-                            {employees.find(
-                                (employee) => employee.id == data.employee_id,
-                            )?.name ?? "-"}
+                            {method=='post'?(
+                                <span>
+                                    {employees.find(
+                                        (employee) => employee.id == data.employee_id,
+                                    )?.name ?? "-"}
+                                </span>
+                            ) : (
+                                <span>
+                                    {employee.employee_id}  - {employee.name}
+                                </span>
+                                
+                            )}
                         </p>
                     </div>
 

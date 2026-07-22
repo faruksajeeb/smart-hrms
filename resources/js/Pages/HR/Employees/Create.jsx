@@ -53,6 +53,8 @@ const defaults = {
     blood_group_master_data_id: '',
     marital_status_master_data_id: '',
     qualification_master_data_id: '',
+    shift_id: '',
+    weekly_off_policy_id: '',
     document_photo: null,
     document_cv: null,
     document_nid: null,
