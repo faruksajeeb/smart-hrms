@@ -16,6 +16,7 @@ use App\Http\Controllers\HR\ShiftSwapRequestController;
 use App\Http\Controllers\HR\WeeklyOffPolicyController;
 use App\Http\Controllers\HR\EmployeeWeeklyOffAssignmentController;
 use App\Http\Controllers\HR\EmployeeShiftAssignmentController;
+use App\Http\Controllers\HR\BulkAssignmentController;
 
 
 use App\Http\Controllers\ProfileController;
@@ -259,7 +260,17 @@ Route::middleware('auth')->group(function () {
                         ->name('history');
                 });
             // =========
+
+                Route::controller(BulkAssignmentController::class)
+                ->prefix('bulk-assignments')
+                ->name('bulk-assignments.')
+                ->middleware(['permission:manage attendance', 'auth'])
+                ->group(function () {
+                    Route::get('/', 'index')->name('index');
+                    Route::post('/', 'store')->name('store');
+                });
         });
+
         Route::get('/payroll', function () {
             return Inertia::render('Modules/Show', [
                 'layout' => 'hr',
@@ -285,6 +296,8 @@ Route::middleware('auth')->group(function () {
             ]);
         })->middleware('permission:manage leave requests')->name('leave');
     });
+
+
 
     Route::prefix('employee')->name('employee.')->middleware('role:employee')->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'employee'])->name('dashboard');

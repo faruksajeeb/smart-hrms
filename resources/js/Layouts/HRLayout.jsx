@@ -14,10 +14,10 @@ const navigation = [
         active: [
             'hr.attendance.*',
             'hr.shifts.*',
-            'hr.shift-schedules.*',
             'hr.shift-swap-requests.*',
             'hr.weekly-off-assignments.*',
             'hr.shift-assignments.*',
+            'hr.bulk-assignments.*',
         ],
         permission: 'manage attendance',
         roles: ['hr'],
@@ -26,11 +26,6 @@ const navigation = [
                 label: 'Shifts',
                 route: 'hr.shifts.index',
                 active: 'hr.shifts.*',
-            },
-            {
-                label: 'Shift & Schedule',
-                route: 'hr.shift-schedules.index',
-                active: 'hr.shift-schedules.*',
             },
             {
                 label: 'Swap Requests',
@@ -51,6 +46,11 @@ const navigation = [
                 label: 'Shift Assignments',
                 route: 'hr.shift-assignments.index',
                 active: 'hr.shift-assignments.*',
+            },
+            {
+                label: 'Bulk Assignments',
+                route: 'hr.bulk-assignments.index',
+                active: 'hr.bulk-assignments.*',
             },
         ],
     },
