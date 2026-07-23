@@ -17,6 +17,7 @@ use App\Http\Controllers\HR\WeeklyOffPolicyController;
 use App\Http\Controllers\HR\EmployeeWeeklyOffAssignmentController;
 use App\Http\Controllers\HR\EmployeeShiftAssignmentController;
 use App\Http\Controllers\HR\BulkAssignmentController;
+use App\Http\Controllers\HR\EmployeeReportingManagerAssignmentController;
 
 
 use App\Http\Controllers\ProfileController;
@@ -261,14 +262,47 @@ Route::middleware('auth')->group(function () {
                 });
             // =========
 
-                Route::controller(BulkAssignmentController::class)
+            Route::controller(BulkAssignmentController::class)
                 ->prefix('bulk-assignments')
                 ->name('bulk-assignments.')
-                ->middleware(['permission:manage attendance', 'auth'])
                 ->group(function () {
                     Route::get('/', 'index')->name('index');
                     Route::post('/', 'store')->name('store');
                 });
+
+            Route::controller(EmployeeReportingManagerAssignmentController::class)
+                ->prefix('reporting-manager-assignments')
+                ->name('reporting-manager-assignments.')
+                ->group(function () {
+
+                    Route::get('/', 'index')
+                        ->name('index');
+
+                    Route::get('/create', 'create')
+                        ->name('create');
+
+                    Route::post('/', 'store')
+                        ->name('store');
+
+                    Route::get('/{assignment}/edit', 'edit')
+                        ->name('edit');
+
+                    Route::put('/{assignment}', 'update')
+                        ->name('update');
+
+                    Route::delete('/{assignment}', 'destroy')
+                        ->name('destroy');
+
+                    Route::get('/{assignment}/change', 'change')
+                        ->name('change');
+
+                    Route::post('/{assignment}/change', 'storeChange')
+                        ->name('store-change');
+
+                    Route::get('/{assignment}/history', 'history')
+                        ->name('history');
+                });
+            // =========
         });
 
         Route::get('/payroll', function () {

@@ -24,6 +24,7 @@ class UpdateEmployeeRequest extends StoreEmployeeRequest
             ...$this->profileRules(),
             ...app(EmployeeMasterDataService::class)->validationRules(),
             ...$this->documentRules(),
+            'manager_id' => ['nullable', 'integer', Rule::exists('users', 'id')],
             'password' => ['nullable', 'confirmed', Password::defaults()],
         ];
     }

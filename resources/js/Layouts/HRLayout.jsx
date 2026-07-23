@@ -3,11 +3,22 @@ import RoleLayout from '@/Layouts/RoleLayout';
 const navigation = [
     { label: 'Dashboard', route: 'hr.dashboard' },
     {
-        label: 'Employees',
-        route: 'hr.employees.index',
+        label: 'Employee Management',
         active: 'hr.employees.*',
         permission: 'manage employees',
         roles: ['hr'],
+        children:[
+            {
+                label: 'Employee List',
+                route: 'hr.employees.index',
+                active: 'hr.employees.*',
+            },
+            {
+                label: 'Reporting Manager Assignments',
+                route: 'hr.reporting-manager-assignments.index',
+                active: 'hr.reporting-manager-assignments.*',
+            }
+        ]
     },
     {
         label: 'Attendance',
@@ -18,6 +29,7 @@ const navigation = [
             'hr.weekly-off-assignments.*',
             'hr.shift-assignments.*',
             'hr.bulk-assignments.*',
+
         ],
         permission: 'manage attendance',
         roles: ['hr'],

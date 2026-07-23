@@ -55,6 +55,7 @@ const defaults = {
     qualification_master_data_id: '',
     shift_id: '',
     weekly_off_policy_id: '',
+    manager_id: '',
     document_photo: null,
     document_cv: null,
     document_nid: null,

@@ -126,4 +126,15 @@ class User extends Authenticatable
     {
         return $this->hasMany(ShiftSwapRequest::class, 'requester_id');
     }
+
+    public function reportingManagerAssignments(): HasMany
+    {
+        return $this->hasMany(EmployeeReportingManagerAssignment::class);
+    }
+
+    public function currentReportingManagerAssignment(): HasOne
+    {
+        return $this->hasOne(EmployeeReportingManagerAssignment::class)
+            ->where('is_current', true);
+    }
 }

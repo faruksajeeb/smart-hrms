@@ -19,7 +19,7 @@ test('hr users can view the bulk assignment page', function () {
     ]);
     $hr->assignRole(User::ROLE_HR);
 
-    $this->actingAs($hr)->get(route('bulk-assignments.index'))
+    $this->actingAs($hr)->get(route('hr.bulk-assignments.index'))
         ->assertOk();
 });
 
@@ -126,7 +126,7 @@ test('hr users can bulk assign shift and weekly off to employees', function () {
         'employment_type' => 'probation',
     ]);
 
-    $this->actingAs($hr)->post(route('bulk-assignments.store'), [
+    $this->actingAs($hr)->post(route('hr.bulk-assignments.store'), [
         'employee_ids' => [$employee1->id, $employee2->id, $employee3->id],
         'shift_id' => $shift->id,
         'weekly_off_policy_id' => $weeklyOffPolicy->id,
@@ -271,7 +271,7 @@ test('hr users can bulk assign shifts and close existing assignments with differ
         'is_current' => true,
     ]);
 
-    $this->actingAs($hr)->post(route('bulk-assignments.store'), [
+    $this->actingAs($hr)->post(route('hr.bulk-assignments.store'), [
         'employee_ids' => [$employee1->id, $employee2->id],
         'shift_id' => $generalShift->id,
         'weekly_off_policy_id' => $weeklyOffPolicy->id,

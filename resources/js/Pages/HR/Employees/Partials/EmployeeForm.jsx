@@ -85,6 +85,8 @@ export default function EmployeeForm({
     const selectedWeeklyOff = (options.weeklyOffPolicies ?? []).find((p) => String(p.id) === String(data.weekly_off_policy_id)) ?? null;
     const weeklyOffDayNames = (selectedWeeklyOff?.days ?? []).map((d) => DAY_NAMES[d] ?? `Day ${d}`).join(', ');
 
+    const selectedManager = (options.managers ?? []).find((m) => String(m.id) === String(data.manager_id)) ?? null;
+
     const applyCvData = (payload) => {
         Object.entries(payload.data ?? {}).forEach(([field, value]) => {
             if (value !== null && value !== undefined && value !== '' && field in data) {
@@ -327,6 +329,27 @@ export default function EmployeeForm({
                     </div>
                 </section>
             )}
+
+            <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                <h2 className="text-lg font-semibold text-slate-950">Reporting Manager</h2>
+                <p className="mt-1 text-sm text-slate-500">
+                    Assign a reporting manager for this employee.
+                </p>
+                <div className="mt-6 grid gap-5 md:grid-cols-2">
+                    <div>
+                        <SearchSelect id="manager_id" label="Reporting Manager" value={data.manager_id} options={options.managers} onChange={(value) => setData('manager_id', value)} error={errors.manager_id} placeholder="Search manager..." />
+                        {selectedManager && (
+                            <div className="mt-3 rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Manager Details</p>
+                                <div className="mt-2 space-y-1 text-sm text-slate-600">
+                                    <p><span className="font-medium">ID:</span> {selectedManager.employee_id ?? '-'}</p>
+                                    <p><span className="font-medium">Name:</span> {selectedManager.label}</p>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </section>
 
             <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                 <h2 className="text-lg font-semibold text-slate-950">Personal Information</h2>

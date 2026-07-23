@@ -291,6 +291,71 @@ export default function Show({ employee, events }) {
 
                     <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                         <h2 className="text-lg font-semibold text-slate-950">
+                            Reporting Manager
+                        </h2>
+                        <div className="mt-6 grid gap-4 md:grid-cols-4">
+                            <DetailItem
+                                label="Manager"
+                                value={employee.profile.current_reporting_manager_details?.manager_name || "Not set"}
+                            >
+                                {employee.profile.current_reporting_manager_details && (
+                                    <div className="mt-3 space-y-1 text-sm text-slate-600">
+                                        <p><span className="font-medium">ID:</span> {employee.profile.current_reporting_manager_details.manager_employee_id}</p>
+                                        <p><span className="font-medium">Email:</span> {employee.profile.current_reporting_manager_details.manager_email}</p>
+                                    </div>
+                                )}
+                            </DetailItem>
+                            <DetailItem
+                                label="Effective From"
+                                value={employee.profile.current_reporting_manager_details?.effective_from || "Not set"}
+                            />
+                            <DetailItem
+                                label="Effective To"
+                                value={employee.profile.current_reporting_manager_details?.effective_to || "Present"}
+                            />
+                            <DetailItem
+                                label="Assignment Type"
+                                value={titleCase(employee.profile.current_reporting_manager_details?.assignment_type || "Not set")}
+                            />
+                        </div>
+                        <div className="mt-4 flex gap-3">
+                            {employee.profile.current_reporting_manager_assignment_id ? (
+                                <Link
+                                    href={route(
+                                        "hr.reporting-manager-assignments.change",
+                                        employee.profile.current_reporting_manager_assignment_id,
+                                    )}
+                                    className="inline-flex items-center rounded-xl bg-sky-700 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-sky-800"
+                                >
+                                    Change Manager
+                                </Link>
+                            ) : (
+                                <Link
+                                    href={route(
+                                        "hr.reporting-manager-assignments.create",
+                                        { employee_id: employee.id }
+                                    )}
+                                    className="inline-flex items-center rounded-xl bg-sky-700 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-sky-800"
+                                >
+                                    Assign Manager
+                                </Link>
+                            )}
+                            {employee.profile.current_reporting_manager_assignment_id && (
+                                <Link
+                                    href={route(
+                                        "hr.reporting-manager-assignments.history",
+                                        employee.profile.current_reporting_manager_assignment_id,
+                                    )}
+                                    className="inline-flex items-center rounded-xl border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+                                >
+                                    History
+                                </Link>
+                            )}
+                        </div>
+                    </section>
+
+                    <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                        <h2 className="text-lg font-semibold text-slate-950">
                             Probation, Leave, and Salary
                         </h2>
                         <div className="mt-6 grid gap-4 md:grid-cols-4">

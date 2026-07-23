@@ -13,6 +13,7 @@ use App\Models\EmployeeDocument;
 use App\Models\EmployeeProfile;
 use App\Models\EmployeeShiftAssignment;
 use App\Models\EmployeeWeeklyOffAssignment;
+use App\Models\EmployeeReportingManagerAssignment;
 use App\Models\MasterDataItem;
 use App\Models\Shift;
 use App\Models\User;
@@ -158,6 +159,20 @@ class EmployeeController extends Controller
                 ]);
             }
 
+            if ($request->filled('manager_id')) {
+                EmployeeReportingManagerAssignment::create([
+                    'user_id' => $employee->id,
+                    'manager_id' => $request->manager_id,
+                    'effective_from' => $request->date('joining_date'),
+                    'effective_to' => null,
+                    'assignment_type' => 'initial',
+                    'is_current' => true,
+                    'remarks' => null,
+                    'created_by' => auth()->id(),
+                    'updated_by' => auth()->id(),
+                ]);
+            }
+
             $this->recordEvent($employee, EmployeeLifecycleEvent::TYPE_ONBOARDING, 'Employee onboarded', $request->date('joining_date'), [
                 'department' => $request->input('department'),
                 'designation' => $request->input('designation'),
@@ -183,6 +198,8 @@ class EmployeeController extends Controller
             'weeklyOffAssignments' => fn ($q) => $q->where('is_current', true),
             'weeklyOffAssignments.weeklyOffPolicy',
             'weeklyOffAssignments.weeklyOffPolicy.days',
+            'reportingManagerAssignments' => fn ($q) => $q->where('is_current', true),
+            'reportingManagerAssignments.manager',
         ]);
         $this->loadDocumentsIfAvailable($employee);
 
@@ -243,6 +260,36 @@ class EmployeeController extends Controller
             );
 
             $this->employeeMasterData->syncTags($employee, $request->all());
+
+            if ($request->filled('manager_id')) {
+                $currentAssignment = EmployeeReportingManagerAssignment::query()
+                    ->where('user_id', $employee->id)
+                    ->where('is_current', true)
+                    ->first();
+
+                if ($currentAssignment && (int) $currentAssignment->manager_id !== (int) $request->integer('manager_id')) {
+                    $currentAssignment->update([
+                        'effective_to' => now()->subDay(),
+                        'is_current' => false,
+                        'updated_by' => auth()->id(),
+                    ]);
+                }
+
+                if (! $currentAssignment || (int) $currentAssignment->manager_id !== (int) $request->integer('manager_id')) {
+                    EmployeeReportingManagerAssignment::create([
+                        'user_id' => $employee->id,
+                        'manager_id' => $request->integer('manager_id'),
+                        'effective_from' => now(),
+                        'effective_to' => null,
+                        'assignment_type' => 'initial',
+                        'is_current' => true,
+                        'remarks' => 'Updated via employee edit',
+                        'created_by' => auth()->id(),
+                        'updated_by' => auth()->id(),
+                    ]);
+                }
+            }
+
             $this->storeDocuments($employee, $request);
 
             $this->recordSetupEvents($employee, $request);
@@ -523,6 +570,7 @@ class EmployeeController extends Controller
                 'weekly_off_policy_id' => optional($employee->weeklyOffAssignments()->where('is_current', true)->first())->weekly_off_policy_id,
                 'current_shift_assignment_id' => optional($employee->shiftAssignments()->where('is_current', true)->first())->id,
                 'current_weekly_off_assignment_id' => optional($employee->weeklyOffAssignments()->where('is_current', true)->first())->id,
+                'current_reporting_manager_assignment_id' => optional($employee->reportingManagerAssignments()->where('is_current', true)->first())->id,
                 'current_shift_name' => optional($employee->shiftAssignments()->where('is_current', true)->first())->shift?->shift_name,
                 'current_weekly_off_policy_name' => optional($employee->weeklyOffAssignments()->where('is_current', true)->first())->weeklyOffPolicy?->policy_name,
                 'current_shift_details' => (function () use ($employee) {
@@ -552,6 +600,22 @@ class EmployeeController extends Controller
                         'policy_code' => $assignment->weeklyOffPolicy->policy_code,
                         'description' => $assignment->weeklyOffPolicy->description,
                         'days' => $assignment->weeklyOffPolicy->days->map(fn ($d) => $d->day_of_week)->all(),
+                    ];
+                })(),
+                'current_reporting_manager_details' => (function () use ($employee) {
+                    $assignment = $employee->reportingManagerAssignments()->where('is_current', true)->first();
+                    if (! $assignment || ! $assignment->manager) {
+                        return null;
+                    }
+
+                    return [
+                        'manager_id' => $assignment->manager->id,
+                        'manager_name' => $assignment->manager->name,
+                        'manager_employee_id' => $assignment->manager->employee_id,
+                        'manager_email' => $assignment->manager->email,
+                        'effective_from' => $assignment->effective_from,
+                        'effective_to' => $assignment->effective_to,
+                        'assignment_type' => $assignment->assignment_type,
                     ];
                 })(),
                 'probation_starts_on' => $profile->probation_starts_on?->toDateString(),
@@ -833,6 +897,16 @@ class EmployeeController extends Controller
                 ])
                 ->values()
                 ->all(),
+            'managers' => User::query()
+                ->whereHas('roles', fn ($roles) => $roles->where('name', User::ROLE_EMPLOYEE))
+                ->orderBy('name')
+                ->get(['id', 'employee_id', 'name'])
+                ->map(fn ($user) => [
+                    'id' => $user->id,
+                    'label' => "{$user->employee_id} - {$user->name}",
+                ])
+                ->values()
+                ->all(),
             'masterData' => $this->employeeMasterData->formOptions(),
         ];
     }
@@ -861,6 +935,7 @@ class EmployeeController extends Controller
             'joining_date' => '',
             'shift_id' => '',
             'weekly_off_policy_id' => '',
+            'manager_id' => '',
             'probation_starts_on' => '',
             'probation_ends_on' => '',
             'probation_status' => EmployeeProfile::PROBATION_PENDING,
