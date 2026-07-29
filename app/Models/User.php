@@ -16,7 +16,7 @@ use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['name', 'email', 'password', 'employee_id', 'status'])]
+#[Fillable(['name', 'email', 'password', 'employee_id', 'status', 'company_id', 'branch_id', 'cluster_id', 'division_id', 'department_id', 'section_id', 'unit_id'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -136,5 +136,73 @@ class User extends Authenticatable
     {
         return $this->hasOne(EmployeeReportingManagerAssignment::class)
             ->where('is_current', true);
+    }
+
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(MasterDataItem::class, 'company_id');
+    }
+
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(MasterDataItem::class, 'branch_id');
+    }
+
+    public function cluster(): BelongsTo
+    {
+        return $this->belongsTo(MasterDataItem::class, 'cluster_id');
+    }
+
+    public function division(): BelongsTo
+    {
+        return $this->belongsTo(MasterDataItem::class, 'division_id');
+    }
+
+    public function department(): BelongsTo
+    {
+        return $this->belongsTo(MasterDataItem::class, 'department_id');
+    }
+
+    public function section(): BelongsTo
+    {
+        return $this->belongsTo(MasterDataItem::class, 'section_id');
+    }
+
+    public function unit(): BelongsTo
+    {
+        return $this->belongsTo(MasterDataItem::class, 'unit_id');
+    }
+
+    public function transfers(): HasMany
+    {
+        return $this->hasMany(EmployeeTransfer::class);
+    }
+
+    public function currentTransfer(): HasOne
+    {
+        return $this->hasOne(EmployeeTransfer::class)
+            ->where('approval_status', 'approved')
+            ->whereNull('effective_to')
+            ->latest('effective_from');
+    }
+
+    public function populateOrgFromPivot(\Illuminate\Support\Collection $pivotItems): void
+    {
+        $grouped = $pivotItems->groupBy('category');
+
+        $fields = ['company', 'branch', 'cluster', 'division', 'department', 'section', 'unit'];
+
+        foreach ($fields as $field) {
+            $fkField = "{$field}_id";
+
+            if (!$this->getAttribute($fkField)) {
+                $pivotItem = $grouped->get($field)?->first();
+
+                if ($pivotItem) {
+                    $this->setAttribute($fkField, $pivotItem->id);
+                    $this->setRelation($field, $pivotItem);
+                }
+            }
+        }
     }
 }

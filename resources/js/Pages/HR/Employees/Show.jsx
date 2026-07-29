@@ -356,6 +356,56 @@ export default function Show({ employee, events }) {
 
                     <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                         <h2 className="text-lg font-semibold text-slate-950">
+                            Organizational Assignment
+                        </h2>
+                        <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                            <DetailItem
+                                label="Company"
+                                value={employee.company_name || display(employee.profile?.department)}
+                            />
+                            <DetailItem
+                                label="Branch"
+                                value={employee.branch_name || 'Not set'}
+                            />
+                            <DetailItem
+                                label="Cluster"
+                                value={employee.cluster_name || 'Not set'}
+                            />
+                            <DetailItem
+                                label="Division"
+                                value={employee.division_name || 'Not set'}
+                            />
+                            <DetailItem
+                                label="Department"
+                                value={employee.department_name || 'Not set'}
+                            />
+                            <DetailItem
+                                label="Section"
+                                value={employee.section_name || 'Not set'}
+                            />
+                            <DetailItem
+                                label="Unit"
+                                value={employee.unit_name || 'Not set'}
+                            />
+                        </div>
+                        <div className="mt-4 flex gap-3">
+                            <Link
+                                href={route('hr.transfers.create', { employee_id: employee.id })}
+                                className="inline-flex items-center rounded-xl bg-sky-700 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-sky-800"
+                            >
+                                Transfer
+                            </Link>
+                            <Link
+                                href={route('hr.transfers.history', employee.id)}
+                                className="inline-flex items-center rounded-xl border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+                            >
+                                History
+                            </Link>
+                        </div>
+                    </section>
+
+                    <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                        <h2 className="text-lg font-semibold text-slate-950">
                             Probation, Leave, and Salary
                         </h2>
                         <div className="mt-6 grid gap-4 md:grid-cols-4">

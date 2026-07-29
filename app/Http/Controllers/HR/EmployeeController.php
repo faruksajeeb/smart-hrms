@@ -526,6 +526,20 @@ class EmployeeController extends Controller
             'probation_ends_on' => $profile?->probation_ends_on?->toDateString(),
             'salary' => $profile?->salary_display ?? 'Not set',
             'photo_url' => $this->photoUrl($employee),
+            'company_id' => $employee->company_id,
+            'branch_id' => $employee->branch_id,
+            'cluster_id' => $employee->cluster_id,
+            'division_id' => $employee->division_id,
+            'department_id' => $employee->department_id,
+            'section_id' => $employee->section_id,
+            'unit_id' => $employee->unit_id,
+            'company_name' => optional($employee->company)->name,
+            'branch_name' => optional($employee->branch)->name,
+            'cluster_name' => optional($employee->cluster)->name,
+            'division_name' => optional($employee->division)->name,
+            'department_name' => optional($employee->department)->name,
+            'section_name' => optional($employee->section)->name,
+            'unit_name' => optional($employee->unit)->name,
         ];
     }
 

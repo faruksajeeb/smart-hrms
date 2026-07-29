@@ -35,6 +35,16 @@ class MasterDataItem extends Model
 
     public const CATEGORY_DEPARTMENT = 'department';
 
+    public const CATEGORY_CLUSTER = 'cluster';
+
+    public const CATEGORY_SECTION = 'section';
+
+    public const CATEGORY_UNIT = 'unit';
+
+    public const CATEGORY_COST_CENTER = 'cost_center';
+
+    public const CATEGORY_LOCATION = 'location';
+
     public const CATEGORY_DESIGNATION = 'designation';
 
     public const CATEGORY_RELIGION = 'religion';
@@ -93,8 +103,13 @@ class MasterDataItem extends Model
         return [
             self::CATEGORY_COMPANY => 'Company',
             self::CATEGORY_BRANCH => 'Branch',
+            self::CATEGORY_CLUSTER => 'Cluster',
             self::CATEGORY_DIVISION => 'Division',
             self::CATEGORY_DEPARTMENT => 'Department',
+            self::CATEGORY_SECTION => 'Section',
+            self::CATEGORY_UNIT => 'Unit',
+            self::CATEGORY_COST_CENTER => 'Cost Center',
+            self::CATEGORY_LOCATION => 'Location',
             self::CATEGORY_DESIGNATION => 'Designation',
             self::CATEGORY_RELIGION => 'Religion',
             self::CATEGORY_BLOOD_GROUP => 'Blood Group',
@@ -118,8 +133,13 @@ class MasterDataItem extends Model
     {
         return [
             self::CATEGORY_BRANCH => [self::CATEGORY_COMPANY],
-            self::CATEGORY_DIVISION => [self::CATEGORY_COMPANY, self::CATEGORY_BRANCH],
-            self::CATEGORY_DEPARTMENT => [self::CATEGORY_COMPANY, self::CATEGORY_BRANCH, self::CATEGORY_DIVISION],
+            self::CATEGORY_CLUSTER => [self::CATEGORY_COMPANY, self::CATEGORY_BRANCH],
+            self::CATEGORY_DIVISION => [self::CATEGORY_COMPANY, self::CATEGORY_BRANCH, self::CATEGORY_CLUSTER],
+            self::CATEGORY_DEPARTMENT => [self::CATEGORY_COMPANY, self::CATEGORY_BRANCH, self::CATEGORY_CLUSTER, self::CATEGORY_DIVISION],
+            self::CATEGORY_SECTION => [self::CATEGORY_COMPANY, self::CATEGORY_BRANCH, self::CATEGORY_CLUSTER, self::CATEGORY_DIVISION, self::CATEGORY_DEPARTMENT],
+            self::CATEGORY_UNIT => [self::CATEGORY_COMPANY, self::CATEGORY_BRANCH, self::CATEGORY_CLUSTER, self::CATEGORY_DIVISION, self::CATEGORY_DEPARTMENT, self::CATEGORY_SECTION],
+            self::CATEGORY_COST_CENTER => [self::CATEGORY_COMPANY, self::CATEGORY_BRANCH],
+            self::CATEGORY_LOCATION => [self::CATEGORY_COMPANY, self::CATEGORY_BRANCH],
             self::CATEGORY_DESIGNATION => [self::CATEGORY_DEPARTMENT],
             self::CATEGORY_CITY => [self::CATEGORY_DISTRICT],
         ];

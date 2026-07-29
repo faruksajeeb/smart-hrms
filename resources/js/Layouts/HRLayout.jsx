@@ -17,6 +17,11 @@ const navigation = [
                 label: 'Reporting Manager Assignments',
                 route: 'hr.reporting-manager-assignments.index',
                 active: 'hr.reporting-manager-assignments.*',
+            },
+            {
+                label: 'Transfer Employees',
+                route: 'hr.transfers.index',
+                active: 'hr.transfers.*',
             }
         ]
     },

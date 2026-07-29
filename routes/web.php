@@ -18,6 +18,7 @@ use App\Http\Controllers\HR\EmployeeWeeklyOffAssignmentController;
 use App\Http\Controllers\HR\EmployeeShiftAssignmentController;
 use App\Http\Controllers\HR\BulkAssignmentController;
 use App\Http\Controllers\HR\EmployeeReportingManagerAssignmentController;
+use App\Http\Controllers\HR\EmployeeTransferController;
 
 
 use App\Http\Controllers\ProfileController;
@@ -268,6 +269,42 @@ Route::middleware('auth')->group(function () {
                 ->group(function () {
                     Route::get('/', 'index')->name('index');
                     Route::post('/', 'store')->name('store');
+                });
+
+            Route::controller(EmployeeTransferController::class)
+                ->prefix('transfers')
+                ->name('transfers.')
+                ->group(function () {
+
+                    Route::get('/', 'index')
+                        ->name('index');
+
+                    Route::get('/create', 'create')
+                        ->name('create');
+
+                    Route::post('/', 'store')
+                        ->name('store');
+
+                    Route::get('/{transfer}', 'show')
+                        ->name('show');
+
+                    Route::get('/{transfer}/edit', 'edit')
+                        ->name('edit');
+
+                    Route::put('/{transfer}', 'update')
+                        ->name('update');
+
+                    Route::delete('/{transfer}', 'destroy')
+                        ->name('destroy');
+
+                    Route::post('/{transfer}/approve', 'approve')
+                        ->name('approve');
+
+                    Route::post('/{transfer}/reject', 'reject')
+                        ->name('reject');
+
+                    Route::get('/{employee}/history', 'history')
+                        ->name('history');
                 });
 
             Route::controller(EmployeeReportingManagerAssignmentController::class)
