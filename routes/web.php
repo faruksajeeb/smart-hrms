@@ -17,8 +17,18 @@ use App\Http\Controllers\HR\WeeklyOffPolicyController;
 use App\Http\Controllers\HR\EmployeeWeeklyOffAssignmentController;
 use App\Http\Controllers\HR\EmployeeShiftAssignmentController;
 use App\Http\Controllers\HR\BulkAssignmentController;
+use App\Http\Controllers\HR\Approval\ApprovalRequestController;
+use App\Http\Controllers\HR\Approval\ApprovalWorkflowController;
 use App\Http\Controllers\HR\EmployeeReportingManagerAssignmentController;
 use App\Http\Controllers\HR\EmployeeTransferController;
+use App\Http\Controllers\HR\EmploymentMovementController;
+use App\Http\Controllers\HR\Leave\HolidayController;
+use App\Http\Controllers\HR\Leave\LeaveLedgerController;
+use App\Http\Controllers\HR\Leave\LeavePolicyAssignmentController;
+use App\Http\Controllers\HR\Leave\LeavePolicyController;
+use App\Http\Controllers\HR\Leave\LeavePolicyDetailController;
+use App\Http\Controllers\HR\Leave\LeaveTypeController;
+use App\Http\Controllers\HR\Leave\OpeningBalanceController;
 
 
 use App\Http\Controllers\ProfileController;
@@ -271,6 +281,36 @@ Route::middleware('auth')->group(function () {
                     Route::post('/', 'store')->name('store');
                 });
 
+            Route::controller(EmploymentMovementController::class)
+                ->prefix('employment-movements')
+                ->name('employment-movements.')
+                ->group(function () {
+
+                    Route::get('/', 'index')
+                        ->name('index');
+
+                    Route::get('/create', 'create')
+                        ->name('create');
+
+                    Route::post('/', 'store')
+                        ->name('store');
+
+                    Route::get('/{movement}', 'show')
+                        ->name('show');
+
+                    Route::get('/{movement}/edit', 'edit')
+                        ->name('edit');
+
+                    Route::put('/{movement}', 'update')
+                        ->name('update');
+
+                    Route::delete('/{movement}', 'destroy')
+                        ->name('destroy');
+
+                    Route::get('/{employee}/history', 'history')
+                        ->name('history');
+                });
+
             Route::controller(EmployeeTransferController::class)
                 ->prefix('transfers')
                 ->name('transfers.')
@@ -338,6 +378,285 @@ Route::middleware('auth')->group(function () {
 
                     Route::get('/{assignment}/history', 'history')
                         ->name('history');
+                });
+
+            Route::controller(ApprovalWorkflowController::class)
+                ->prefix('approval/workflows')
+                ->name('approval.workflows.')
+                ->group(function () {
+
+                    Route::get('/', 'index')
+                        ->name('index');
+
+                    Route::get('/create', 'create')
+                        ->name('create');
+
+                    Route::post('/', 'store')
+                        ->name('store');
+
+                    Route::get('/{workflow}', 'show')
+                        ->name('show');
+
+                    Route::get('/{workflow}/edit', 'edit')
+                        ->name('edit');
+
+                    Route::put('/{workflow}', 'update')
+                        ->name('update');
+
+                    Route::delete('/{workflow}', 'destroy')
+                        ->name('destroy');
+                });
+
+            Route::controller(ApprovalRequestController::class)
+                ->prefix('approval/requests')
+                ->name('approval.requests.')
+                ->group(function () {
+
+                    Route::get('/', 'index')
+                        ->name('index');
+
+                    Route::get('/pending', 'pending')
+                        ->name('pending');
+
+                    Route::get('/history', 'history')
+                        ->name('history');
+
+                    Route::get('/{request}', 'show')
+                        ->name('show');
+                });
+
+            Route::controller(LeaveTypeController::class)
+                ->prefix('leave/types')
+                ->name('leave.types.')
+                ->group(function () {
+
+                    Route::get('/', 'index')
+                        ->name('index')
+                        ->middleware('permission:manage leave types');
+
+                    Route::get('/create', 'create')
+                        ->name('create')
+                        ->middleware('permission:manage leave types');
+
+                    Route::post('/', 'store')
+                        ->name('store')
+                        ->middleware('permission:manage leave types');
+
+                    Route::get('/{leave_type}', 'show')
+                        ->name('show')
+                        ->middleware('permission:manage leave types');
+
+                    Route::get('/{leave_type}/edit', 'edit')
+                        ->name('edit')
+                        ->middleware('permission:manage leave types');
+
+                    Route::put('/{leave_type}', 'update')
+                        ->name('update')
+                        ->middleware('permission:manage leave types');
+
+                    Route::delete('/{leave_type}', 'destroy')
+                        ->name('destroy')
+                        ->middleware('permission:manage leave types');
+                });
+
+            Route::controller(LeavePolicyController::class)
+                ->prefix('leave/policies')
+                ->name('leave.policies.')
+                ->group(function () {
+
+                    Route::get('/', 'index')
+                        ->name('index')
+                        ->middleware('permission:manage leave policies');
+
+                    Route::get('/create', 'create')
+                        ->name('create')
+                        ->middleware('permission:manage leave policies');
+
+                    Route::post('/', 'store')
+                        ->name('store')
+                        ->middleware('permission:manage leave policies');
+
+                    Route::get('/{leave_policy}', 'show')
+                        ->name('show')
+                        ->middleware('permission:manage leave policies');
+
+                    Route::get('/{leave_policy}/edit', 'edit')
+                        ->name('edit')
+                        ->middleware('permission:manage leave policies');
+
+                    Route::put('/{leave_policy}', 'update')
+                        ->name('update')
+                        ->middleware('permission:manage leave policies');
+
+                    Route::delete('/{leave_policy}', 'destroy')
+                        ->name('destroy')
+                        ->middleware('permission:manage leave policies');
+                });
+
+            Route::controller(LeavePolicyDetailController::class)
+                ->prefix('leave/policies/{leave_policy}/details')
+                ->name('leave.policies.details.')
+                ->group(function () {
+
+                    Route::get('/', 'index')
+                        ->name('index')
+                        ->middleware('permission:manage leave policies');
+
+                    Route::get('/create', 'create')
+                        ->name('create')
+                        ->middleware('permission:manage leave policies');
+
+                    Route::post('/', 'store')
+                        ->name('store')
+                        ->middleware('permission:manage leave policies');
+
+                    Route::get('/{detail}/edit', 'edit')
+                        ->name('edit')
+                        ->middleware('permission:manage leave policies');
+
+                    Route::put('/{detail}', 'update')
+                        ->name('update')
+                        ->middleware('permission:manage leave policies');
+
+                    Route::delete('/{detail}', 'destroy')
+                        ->name('destroy')
+                        ->middleware('permission:manage leave policies');
+                });
+
+            Route::controller(LeavePolicyAssignmentController::class)
+                ->prefix('leave/assignments')
+                ->name('leave.assignments.')
+                ->group(function () {
+
+                    Route::get('/', 'index')
+                        ->name('index')
+                        ->middleware('permission:manage leave assignments');
+
+                    Route::get('/create', 'create')
+                        ->name('create')
+                        ->middleware('permission:manage leave assignments');
+
+                    Route::post('/', 'store')
+                        ->name('store')
+                        ->middleware('permission:manage leave assignments');
+
+                    Route::get('/{assignment}', 'show')
+                        ->name('show')
+                        ->middleware('permission:manage leave assignments');
+
+                    Route::get('/{assignment}/edit', 'edit')
+                        ->name('edit')
+                        ->middleware('permission:manage leave assignments');
+
+                    Route::put('/{assignment}', 'update')
+                        ->name('update')
+                        ->middleware('permission:manage leave assignments');
+
+                    Route::delete('/{assignment}', 'destroy')
+                        ->name('destroy')
+                        ->middleware('permission:manage leave assignments');
+                });
+
+            Route::controller(HolidayController::class)
+                ->prefix('leave/holidays')
+                ->name('leave.holidays.')
+                ->group(function () {
+
+                    Route::get('/', 'index')
+                        ->name('index')
+                        ->middleware('permission:manage holidays');
+
+                    Route::get('/create', 'create')
+                        ->name('create')
+                        ->middleware('permission:manage holidays');
+
+                    Route::post('/', 'store')
+                        ->name('store')
+                        ->middleware('permission:manage holidays');
+
+                    Route::get('/{holiday}', 'show')
+                        ->name('show')
+                        ->middleware('permission:manage holidays');
+
+                    Route::get('/{holiday}/edit', 'edit')
+                        ->name('edit')
+                        ->middleware('permission:manage holidays');
+
+                    Route::put('/{holiday}', 'update')
+                        ->name('update')
+                        ->middleware('permission:manage holidays');
+
+                    Route::delete('/{holiday}', 'destroy')
+                        ->name('destroy')
+                        ->middleware('permission:manage holidays');
+                });
+
+            Route::controller(OpeningBalanceController::class)
+                ->prefix('leave/opening-balances')
+                ->name('leave.opening-balances.')
+                ->group(function () {
+
+                    Route::get('/', 'index')
+                        ->name('index')
+                        ->middleware('permission:manage leave balances');
+
+                    Route::get('/import', 'import')
+                        ->name('import')
+                        ->middleware('permission:manage leave balances');
+
+                    Route::post('/import/preview', 'preview')
+                        ->name('import.preview')
+                        ->middleware('permission:manage leave balances');
+
+                    Route::post('/import/commit', 'commit')
+                        ->name('import.commit')
+                        ->middleware('permission:manage leave balances');
+
+                    Route::get('/create', 'create')
+                        ->name('create')
+                        ->middleware('permission:manage leave balances');
+
+                    Route::post('/', 'store')
+                        ->name('store')
+                        ->middleware('permission:manage leave balances');
+
+                    Route::get('/{opening_balance}', 'show')
+                        ->name('show')
+                        ->middleware('permission:manage leave balances');
+
+                    Route::get('/{opening_balance}/edit', 'edit')
+                        ->name('edit')
+                        ->middleware('permission:manage leave balances');
+
+                    Route::put('/{opening_balance}', 'update')
+                        ->name('update')
+                        ->middleware('permission:manage leave balances');
+
+                    Route::delete('/{opening_balance}', 'destroy')
+                        ->name('destroy')
+                        ->middleware('permission:manage leave balances');
+
+                    Route::post('/sync', 'sync')
+                        ->name('sync')
+                        ->middleware('permission:manage leave balances');
+                });
+
+                Route::controller(LeaveLedgerController::class)
+                ->prefix('leave/ledgers')
+                ->name('leave.ledgers.')
+                ->group(function () {
+
+                    Route::get('/', 'index')
+                        ->name('index')
+                        ->middleware('permission:view leave ledger');
+
+                    Route::get('/summary', 'summary')
+                        ->name('summary')
+                        ->middleware('permission:view leave ledger');
+
+                    Route::get('/{ledger}', 'show')
+                        ->name('show')
+                        ->middleware('permission:view leave ledger');
                 });
             // =========
         });

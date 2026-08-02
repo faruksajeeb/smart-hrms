@@ -1,0 +1,7 @@
+employee_code,leave_code,opening_balance,remarks
+EMP-001,AL,15.5,Legacy system import
+EMP-001,CL,5,Casual leave carry forward
+EMP-001,SL,8,Sick leave balance
+EMP-002,AL,20,Annual leave entitlement
+EMP-002,CL,7,Casual leave balance
+EMP-003,AL,10,Part-year employee

@@ -16,7 +16,7 @@ use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['name', 'email', 'password', 'employee_id', 'status', 'company_id', 'branch_id', 'cluster_id', 'division_id', 'department_id', 'section_id', 'unit_id'])]
+#[Fillable(['name', 'email', 'password', 'employee_id', 'status', 'company_id', 'branch_id', 'cluster_id', 'division_id', 'department_id', 'section_id', 'unit_id', 'designation_id', 'employment_type_id', 'reporting_manager_id', 'joining_date'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -184,6 +184,33 @@ class User extends Authenticatable
             ->where('approval_status', 'approved')
             ->whereNull('effective_to')
             ->latest('effective_from');
+    }
+
+    public function employmentHistories(): HasMany
+    {
+        return $this->hasMany(EmployeeEmploymentHistory::class);
+    }
+
+    public function currentEmploymentHistory(): HasOne
+    {
+        return $this->hasOne(EmployeeEmploymentHistory::class)
+            ->whereNull('effective_to')
+            ->latest('effective_from');
+    }
+
+    public function designation(): BelongsTo
+    {
+        return $this->belongsTo(MasterDataItem::class, 'designation_id');
+    }
+
+    public function employmentType(): BelongsTo
+    {
+        return $this->belongsTo(MasterDataItem::class, 'employment_type_id');
+    }
+
+    public function reportingManager(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'reporting_manager_id');
     }
 
     public function populateOrgFromPivot(\Illuminate\Support\Collection $pivotItems): void

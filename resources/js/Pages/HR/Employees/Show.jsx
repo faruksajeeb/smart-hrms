@@ -356,7 +356,7 @@ export default function Show({ employee, events }) {
 
                     <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                         <h2 className="text-lg font-semibold text-slate-950">
-                            Organizational Assignment
+                            Employment Information
                         </h2>
                         <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                             <DetailItem
@@ -387,19 +387,31 @@ export default function Show({ employee, events }) {
                                 label="Unit"
                                 value={employee.unit_name || 'Not set'}
                             />
+                            <DetailItem
+                                label="Designation"
+                                value={employee.designation_name || 'Not set'}
+                            />
+                            <DetailItem
+                                label="Employment Type"
+                                value={employee.employment_type_name || 'Not set'}
+                            />
+                            <DetailItem
+                                label="Reporting Manager"
+                                value={employee.reporting_manager_name || 'Not set'}
+                            />
                         </div>
                         <div className="mt-4 flex gap-3">
                             <Link
-                                href={route('hr.transfers.create', { employee_id: employee.id })}
+                                href={route('hr.employment-movements.create', { employee_id: employee.id })}
                                 className="inline-flex items-center rounded-xl bg-sky-700 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-sky-800"
                             >
-                                Transfer
+                                Add Employment Movement
                             </Link>
                             <Link
-                                href={route('hr.transfers.history', employee.id)}
+                                href={route('hr.employment-movements.history', employee.id)}
                                 className="inline-flex items-center rounded-xl border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
                             >
-                                History
+                                Employment History
                             </Link>
                         </div>
                     </section>

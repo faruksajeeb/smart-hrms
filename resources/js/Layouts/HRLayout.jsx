@@ -19,6 +19,11 @@ const navigation = [
                 active: 'hr.reporting-manager-assignments.*',
             },
             {
+                label: 'Employment Movements',
+                route: 'hr.employment-movements.index',
+                active: 'hr.employment-movements.*',
+            },
+            {
                 label: 'Transfer Employees',
                 route: 'hr.transfers.index',
                 active: 'hr.transfers.*',
@@ -68,6 +73,62 @@ const navigation = [
                 label: 'Bulk Assignments',
                 route: 'hr.bulk-assignments.index',
                 active: 'hr.bulk-assignments.*',
+            },
+        ],
+    },
+    {
+        label: 'Approval Engine',
+        active: 'approval.*',
+        permission: 'approval-workflow.manage-approval-workflow',
+        roles: ['hr'],
+        children: [
+            {
+                label: 'Workflows',
+                route: 'hr.approval.workflows.index',
+                active: 'hr.approval.workflows.*',
+            },
+            {
+                label: 'Approval Requests',
+                route: 'hr.approval.requests.index',
+                active: 'hr.approval.requests.*',
+            },
+        ],
+    },
+    {
+        label: 'Leave Master',
+        active: 'hr.leave.*',
+        permission: 'manage leave types',
+        roles: ['hr'],
+        children: [
+            {
+                label: 'Leave Types',
+                route: 'hr.leave.types.index',
+                active: 'hr.leave.types.*',
+            },
+            {
+                label: 'Leave Policies',
+                route: 'hr.leave.policies.index',
+                active: 'hr.leave.policies.*',
+            },
+            {
+                label: 'Policy Assignments',
+                route: 'hr.leave.assignments.index',
+                active: 'hr.leave.assignments.*',
+            },
+            {
+                label: 'Holiday Calendar',
+                route: 'hr.leave.holidays.index',
+                active: 'hr.leave.holidays.*',
+            },
+            {
+                label: 'Opening Balance',
+                route: 'hr.leave.opening-balances.index',
+                active: 'hr.leave.opening-balances.*',
+            },
+            {
+                label: 'Leave Ledger',
+                route: 'hr.leave.ledgers.index',
+                active: 'hr.leave.ledgers.*',
             },
         ],
     },
