@@ -91,7 +91,7 @@ export default function Show({ policy }) {
                                     {policy.details.map((detail) => (
                                         <tr key={detail.id} className="hover:bg-slate-50">
                                             <td className="px-6 py-4 text-sm text-slate-900">
-                                                {detail.leaveType?.leave_name || '-'}
+                                                {detail.leave_type?.leave_name || '-'}
                                             </td>
                                             <td className="px-6 py-4 text-sm text-slate-900">
                                                 {detail.annual_entitlement ?? '-'}

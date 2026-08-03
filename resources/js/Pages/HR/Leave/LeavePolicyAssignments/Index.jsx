@@ -1,7 +1,7 @@
 import { Head, Link } from '@inertiajs/react';
 import HRLayout from '@/Layouts/HRLayout';
 
-export default function IndexComponent({ assignments }) {
+export default function IndexComponent({ assignments, filters = {}, companies = [], branches = [], divisions = [], policies = [], users = [] }) {
     return (
         <HRLayout
                     heading="Leave Policy Assignments"
@@ -22,6 +22,60 @@ export default function IndexComponent({ assignments }) {
                             + New Assignment
                         </Link>
                     </div>
+                </div>
+
+                <div className="border-b border-slate-200 px-6 py-4">
+                    <form method="GET" className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-6">
+                        <div>
+                            <label className="block text-xs font-medium text-slate-700">Employee</label>
+                            <select name="employee" defaultValue={filters.employee || ''} className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm">
+                                <option value="">All Employees</option>
+                                {users.map((user) => (
+                                    <option key={user.id} value={user.id}>{user.name} ({user.employee_id})</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-xs font-medium text-slate-700">Company</label>
+                            <select name="company" defaultValue={filters.company || ''} className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm">
+                                <option value="">All Companies</option>
+                                {companies.map((company) => (
+                                    <option key={company.id} value={company.id}>{company.name}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-xs font-medium text-slate-700">Branch</label>
+                            <select name="branch" defaultValue={filters.branch || ''} className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm">
+                                <option value="">All Branches</option>
+                                {branches.map((branch) => (
+                                    <option key={branch.id} value={branch.id}>{branch.name}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-xs font-medium text-slate-700">Cluster / Division</label>
+                            <select name="division" defaultValue={filters.division || ''} className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm">
+                                <option value="">All Divisions</option>
+                                {divisions.map((division) => (
+                                    <option key={division.id} value={division.id}>{division.name}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-xs font-medium text-slate-700">Policy</label>
+                            <select name="policy" defaultValue={filters.policy || ''} className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm">
+                                <option value="">All Policies</option>
+                                {policies.map((policy) => (
+                                    <option key={policy.id} value={policy.id}>{policy.policy_name}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="flex items-end gap-2">
+                            <button type="submit" className="rounded-xl bg-sky-700 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-800">Filter</button>
+                            <Link href={route('hr.leave.assignments.index')} className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium hover:bg-slate-100">Reset</Link>
+                        </div>
+                    </form>
                 </div>
 
                 {assignments.data.length > 0 ? (

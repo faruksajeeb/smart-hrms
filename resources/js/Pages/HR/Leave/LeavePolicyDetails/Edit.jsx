@@ -46,6 +46,56 @@ export default function Edit({ policy, detail, errors = {} }) {
             <form onSubmit={submit} className="space-y-6">
                 <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
                     <div className="border-b border-slate-200 px-6 py-4">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h3 className="text-lg font-semibold text-slate-900">
+                                    {policy.policy_name}
+                                </h3>
+                                <p className="mt-1 text-sm text-slate-500">
+                                    {policy.policy_code}
+                                </p>
+                            </div>
+                            <a
+                                href={route('hr.leave.policies.index')}
+                                className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                            >
+                                Back
+                            </a>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-6 p-6 lg:grid-cols-2">
+                        <div>
+                            <h4 className="text-sm font-medium text-slate-500">Description</h4>
+                            <p className="mt-1 font-semibold text-slate-900">
+                                {policy.description || '-'}
+                            </p>
+                        </div>
+
+                        <div>
+                            <h4 className="text-sm font-medium text-slate-500">Effective From</h4>
+                            <p className="mt-1 font-semibold text-slate-900">
+                                {policy.effective_from}
+                            </p>
+                        </div>
+
+                        <div>
+                            <h4 className="text-sm font-medium text-slate-500">Effective To</h4>
+                            <p className="mt-1 font-semibold text-slate-900">
+                                {policy.effective_to || '-'}
+                            </p>
+                        </div>
+
+                        <div>
+                            <h4 className="text-sm font-medium text-slate-500">Status</h4>
+                            <p className="mt-1 font-semibold text-slate-900">
+                                {policy.status}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+                    <div className="border-b border-slate-200 px-6 py-4">
                         <h3 className="text-lg font-semibold text-slate-900">
                             Policy Rule Configuration
                         </h3>

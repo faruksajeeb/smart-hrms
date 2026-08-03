@@ -5,6 +5,7 @@ namespace App\Services\HR\Leave;
 use App\Enums\ApprovalStatus;
 use App\Enums\ApprovalWorkflowStatus;
 use App\Enums\LeaveApplicationStatus;
+use App\Enums\LeaveApplicationType;
 use App\Enums\LeaveTransactionType;
 use App\Models\ApprovalWorkflow;
 use App\Models\LeaveApplication;
@@ -26,14 +27,30 @@ class LeaveApplicationService
         protected ApprovalEngineService $approvalEngine,
     ) {}
 
+    public function resolvePolicy(User $employee, \DateTimeInterface $date): ?LeavePolicyAssignment
+    {
+        return $this->validationService->resolvePolicy($employee, $date);
+    }
+
+    public function getAllBalances(User $user): array
+    {
+        return $this->balanceService->getAllBalances($user);
+    }
+
     public function createDraft(User $employee, array $data, ?int $userId = null): LeaveApplication
     {
         return DB::transaction(function () use ($employee, $data, $userId) {
             $leaveType = \App\Models\LeaveType::findOrFail($data['leave_type_id']);
-            $policy = \App\Models\LeavePolicy::findOrFail($data['leave_policy_id']);
 
             $startDate = \Carbon\Carbon::parse($data['start_date']);
             $endDate = \Carbon\Carbon::parse($data['end_date']);
+
+            $assignment = $this->validationService->resolvePolicy($employee, $startDate);
+            if (!$assignment) {
+                throw new \RuntimeException("You are not assigned to any Leave Policy. Please contact HR.");
+            }
+
+            $policy = \App\Models\LeavePolicy::findOrFail($assignment->leave_policy_id);
 
             $days = $this->calculationService->calculateDays(
                 $employee,
@@ -94,10 +111,16 @@ class LeaveApplicationService
 
         return DB::transaction(function () use ($application, $data, $userId) {
             $leaveType = \App\Models\LeaveType::findOrFail($data['leave_type_id']);
-            $policy = \App\Models\LeavePolicy::findOrFail($data['leave_policy_id']);
 
             $startDate = \Carbon\Carbon::parse($data['start_date']);
             $endDate = \Carbon\Carbon::parse($data['end_date']);
+
+            $assignment = $this->validationService->resolvePolicy($application->employee, $startDate);
+            if (!$assignment) {
+                throw new \RuntimeException("You are not assigned to any Leave Policy. Please contact HR.");
+            }
+
+            $policy = \App\Models\LeavePolicy::findOrFail($assignment->leave_policy_id);
 
             $days = $this->calculationService->calculateDays(
                 $application->employee,
@@ -265,7 +288,7 @@ class LeaveApplicationService
             'debit_days' => $debitDays,
             'balance_after' => $balanceAfter - $debitDays,
             'remarks' => $application->reason,
-            'transaction_source' => 'approval',
+            'transaction_source' => 'system',
             'performed_by' => $userId,
             'approved_by' => $userId,
             'created_by' => $userId,

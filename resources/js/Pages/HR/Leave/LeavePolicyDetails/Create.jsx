@@ -2,7 +2,7 @@ import { Head, useForm } from '@inertiajs/react';
 
 import HRLayout from '@/Layouts/HRLayout';
 
-export default function Create({ policy, errors = {} }) {
+export default function Create({ policy, leaveTypes = [], errors = {} }) {
     const { data, setData, post, processing } = useForm({
         leave_type_id: '',
         annual_entitlement: '',
@@ -46,6 +46,56 @@ export default function Create({ policy, errors = {} }) {
             <form onSubmit={submit} className="space-y-6">
                 <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
                     <div className="border-b border-slate-200 px-6 py-4">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h3 className="text-lg font-semibold text-slate-900">
+                                    {policy.policy_name}
+                                </h3>
+                                <p className="mt-1 text-sm text-slate-500">
+                                    {policy.policy_code}
+                                </p>
+                            </div>
+                            <a
+                                href={route('hr.leave.policies.index')}
+                                className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                            >
+                                Back
+                            </a>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-6 p-6 lg:grid-cols-2">
+                        <div>
+                            <h4 className="text-sm font-medium text-slate-500">Description</h4>
+                            <p className="mt-1 font-semibold text-slate-900">
+                                {policy.description || '-'}
+                            </p>
+                        </div>
+
+                        <div>
+                            <h4 className="text-sm font-medium text-slate-500">Effective From</h4>
+                            <p className="mt-1 font-semibold text-slate-900">
+                                {policy.effective_from}
+                            </p>
+                        </div>
+
+                        <div>
+                            <h4 className="text-sm font-medium text-slate-500">Effective To</h4>
+                            <p className="mt-1 font-semibold text-slate-900">
+                                {policy.effective_to || '-'}
+                            </p>
+                        </div>
+
+                        <div>
+                            <h4 className="text-sm font-medium text-slate-500">Status</h4>
+                            <p className="mt-1 font-semibold text-slate-900">
+                                {policy.status}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+                    <div className="border-b border-slate-200 px-6 py-4">
                         <h3 className="text-lg font-semibold text-slate-900">
                             Policy Rule Configuration
                         </h3>
@@ -62,9 +112,9 @@ export default function Create({ policy, errors = {} }) {
                                 className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2"
                             >
                                 <option value="">Select Leave Type</option>
-                                {policy.details?.map((detail) => (
-                                    <option key={detail.leaveType.id} value={detail.leaveType.id}>
-                                        {detail.leaveType.leave_name}
+                                {leaveTypes.map((type) => (
+                                    <option key={type.id} value={type.id}>
+                                        {type.leave_name}
                                     </option>
                                 ))}
                             </select>

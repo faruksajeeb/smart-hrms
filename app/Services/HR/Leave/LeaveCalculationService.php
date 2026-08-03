@@ -22,20 +22,13 @@ class LeaveCalculationService
         bool $isEmergency = false
     ): array {
         $days = [];
-        $period = new \DatePeriod(
-            \Carbon\Carbon::parse($startDate),
-            \Carbon\Carbon::parse($endDate)->addDay(),
-            new \DateInterval('P1D')
-        );
+        $start = \Carbon\Carbon::parse($startDate);
+        $end = \Carbon\Carbon::parse($endDate);
 
         $holidays = $this->getHolidays($employee, $startDate, $endDate);
         $weeklyOffDays = $this->getWeeklyOffDays($employee, $startDate, $endDate);
-        $sandwichRule = $this->shouldApplySandwichRule($policy);
 
-        $previousWorkingDay = null;
-        $nextWorkingDay = null;
-
-        foreach ($period as $date) {
+        for ($date = $start->copy(); $date->lte($end); $date->addDay()) {
             $dateStr = $date->format('Y-m-d');
             $dayOfWeek = (int) $date->format('N');
 
@@ -53,15 +46,6 @@ class LeaveCalculationService
                 $countsAsLeave = true;
             } elseif ($isHoliday || $isWeeklyOff || $isWeekend) {
                 $countsAsLeave = false;
-            }
-
-            if ($sandwichRule && !$isHalfDay) {
-                if ($previousWorkingDay === null && $this->isWorkingDay($employee, $dateStr, $holidays, $weeklyOffDays)) {
-                    $previousWorkingDay = $dateStr;
-                }
-                if ($nextWorkingDay === null && $this->isWorkingDay($employee, $dateStr, $holidays, $weeklyOffDays)) {
-                    $nextWorkingDay = $dateStr;
-                }
             }
 
             $leaveDays = $countsAsLeave ? ($isHalfDay ? 0.5 : 1) : 0;
@@ -111,7 +95,6 @@ class LeaveCalculationService
     {
         $assignment = EmployeeWeeklyOffAssignment::where('user_id', $employee->id)
             ->where('is_current', true)
-            ->where('status', 'active')
             ->first();
 
         if (!$assignment) {

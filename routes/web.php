@@ -29,6 +29,8 @@ use App\Http\Controllers\HR\Leave\LeavePolicyController;
 use App\Http\Controllers\HR\Leave\LeavePolicyDetailController;
 use App\Http\Controllers\HR\Leave\LeaveTypeController;
 use App\Http\Controllers\HR\Leave\OpeningBalanceController;
+use App\Http\Controllers\HR\Leave\LeaveApplicationController;
+use App\Http\Controllers\HR\Leave\LeaveAttachmentController;
 
 
 use App\Http\Controllers\ProfileController;
@@ -658,6 +660,59 @@ Route::middleware('auth')->group(function () {
                         ->name('show')
                         ->middleware('permission:view leave ledger');
                 });
+
+                Route::controller(LeaveApplicationController::class)
+                ->prefix('leave/applications')
+                ->name('leave.applications.')
+                ->group(function () {
+                    Route::get('/', 'index')
+                        ->name('index')
+                        ->middleware('permission:view leave applications');
+
+                    Route::get('/create', 'create')
+                        ->name('create')
+                        ->middleware('permission:apply for leave');
+
+                    Route::post('/', 'store')
+                        ->name('store')
+                        ->middleware('permission:apply for leave');
+
+                    Route::get('/{application}', 'show')
+                        ->name('show')
+                        ->middleware('permission:view leave applications');
+
+                    Route::get('/{application}/edit', 'edit')
+                        ->name('edit')
+                        ->middleware('permission:edit leave application');
+
+                    Route::put('/{application}', 'update')
+                        ->name('update')
+                        ->middleware('permission:edit leave application');
+
+                    Route::post('/{application}/submit', 'submit')
+                        ->name('submit')
+                        ->middleware('permission:submit leave application');
+
+                    Route::post('/{application}/cancel', 'cancel')
+                        ->name('cancel')
+                        ->middleware('permission:cancel leave application');
+
+                    Route::post('/{application}/withdraw', 'withdraw')
+                        ->name('withdraw')
+                        ->middleware('permission:withdraw leave application');
+
+                    Route::delete('/{application}', 'destroy')
+                        ->name('destroy')
+                        ->middleware('permission:delete leave application');
+                });
+
+                Route::post('leave/applications/{application}/attachments', [LeaveAttachmentController::class, 'store'])
+                    ->name('leave.applications.attachments.store')
+                    ->middleware('permission:upload leave attachment');
+
+                Route::delete('leave/applications/{application}/attachments/{attachment}', [LeaveAttachmentController::class, 'destroy'])
+                    ->name('leave.applications.attachments.destroy')
+                    ->middleware('permission:delete leave attachment');
             // =========
         });
 
@@ -715,6 +770,55 @@ Route::middleware('auth')->group(function () {
                 ],
             ]);
         })->middleware('permission:manage leave requests')->name('leave');
+
+        Route::controller(LeaveApplicationController::class)
+            ->prefix('leave/applications')
+            ->name('leave.applications.')
+            ->group(function () {
+                Route::get('/', 'employeeIndex')
+                    ->name('index')
+                    ->middleware('permission:leave.view-own-applications');
+
+                Route::get('/create', 'create')
+                    ->name('create')
+                    ->middleware('permission:leave.apply');
+
+                Route::post('/', 'store')
+                    ->name('store')
+                    ->middleware('permission:leave.apply');
+
+                Route::get('/{application}', 'show')
+                    ->name('show')
+                    ->middleware('permission:leave.view-own-applications');
+
+                Route::get('/{application}/edit', 'edit')
+                    ->name('edit')
+                    ->middleware('permission:leave.edit-own-application');
+
+                Route::put('/{application}', 'update')
+                    ->name('update')
+                    ->middleware('permission:leave.edit-own-application');
+
+                Route::post('/{application}/submit', 'submit')
+                    ->name('submit')
+                    ->middleware('permission:leave.submit-application');
+
+                Route::post('/{application}/cancel', 'cancel')
+                    ->name('cancel')
+                    ->middleware('permission:leave.cancel-own-application');
+
+                Route::post('/{application}/withdraw', 'withdraw')
+                    ->name('withdraw')
+                    ->middleware('permission:leave.withdraw-application');
+            });
+
+        Route::post('leave/applications/{application}/attachments', [LeaveAttachmentController::class, 'store'])
+            ->name('employee.leave.applications.attachments.store')
+            ->middleware('permission:leave.upload-attachment');
+
+        Route::delete('leave/applications/{application}/attachments/{attachment}', [LeaveAttachmentController::class, 'destroy'])
+            ->name('employee.leave.applications.attachments.destroy')
+            ->middleware('permission:leave.delete-attachment');
     });
 });
 

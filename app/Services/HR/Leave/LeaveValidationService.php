@@ -10,6 +10,7 @@ use App\Models\LeaveBalanceLedger;
 use App\Models\LeavePolicy;
 use App\Models\LeavePolicyAssignment;
 use App\Models\LeavePolicyDetail;
+use App\Models\MasterDataItem;
 use App\Models\LeaveType;
 use App\Models\User;
 use App\Models\EmployeeWeeklyOffAssignment;
@@ -21,6 +22,144 @@ class LeaveValidationService
         protected LeaveBalanceService $balanceService,
         protected LeaveCalculationService $calculationService,
     ) {}
+    public function resolvePolicy(User $employee, \DateTimeInterface $date): ?LeavePolicyAssignment
+    {
+        $assignment = $this->getActivePolicyAssignment($employee, $date);
+
+        if ($assignment) {
+            return $assignment;
+        }
+
+        $user = $employee;
+       
+        if ($user->employment_type_id) {
+            $employmentType = \App\Models\MasterDataItem::find($user->employment_type_id);
+
+            if ($employmentType) {
+                $assignment = LeavePolicyAssignment::where('employment_type', $employmentType->code)
+                    ->orWhere('employment_type', $employmentType->name)
+                    ->where('effective_from', '<=', $date->format('Y-m-d'))
+                    ->where(function ($query) use ($date) {
+                        $query->whereNull('effective_to')->orWhere('effective_to', '>=', $date->format('Y-m-d'));
+                    })
+                    ->where('status', 'active')
+                    ->latest('effective_from')
+                    ->first();
+
+                if ($assignment) {
+                    return $assignment;
+                }
+            }
+        }
+
+        if ($user->designation_id) {
+            $assignment = LeavePolicyAssignment::where('designation_id', $user->designation_id)
+                ->where('effective_from', '<=', $date->format('Y-m-d'))
+                ->where(function ($query) use ($date) {
+                    $query->whereNull('effective_to')->orWhere('effective_to', '>=', $date->format('Y-m-d'));
+                })
+                ->where('status', 'active')
+                ->latest('effective_from')
+                ->first();
+
+            if ($assignment) {
+                return $assignment;
+            }
+        }
+
+        if ($user->unit_id) {
+            $assignment = LeavePolicyAssignment::where('unit_id', $user->unit_id)
+                ->where('effective_from', '<=', $date->format('Y-m-d'))
+                ->where(function ($query) use ($date) {
+                    $query->whereNull('effective_to')->orWhere('effective_to', '>=', $date->format('Y-m-d'));
+                })
+                ->where('status', 'active')
+                ->latest('effective_from')
+                ->first();
+
+            if ($assignment) {
+                return $assignment;
+            }
+        }
+
+        if ($user->section_id) {
+            $assignment = LeavePolicyAssignment::where('section_id', $user->section_id)
+                ->where('effective_from', '<=', $date->format('Y-m-d'))
+                ->where(function ($query) use ($date) {
+                    $query->whereNull('effective_to')->orWhere('effective_to', '>=', $date->format('Y-m-d'));
+                })
+                ->where('status', 'active')
+                ->latest('effective_from')
+                ->first();
+
+            if ($assignment) {
+                return $assignment;
+            }
+        }
+
+        if ($user->department_id) {
+            $assignment = LeavePolicyAssignment::where('department_id', $user->department_id)
+                ->where('effective_from', '<=', $date->format('Y-m-d'))
+                ->where(function ($query) use ($date) {
+                    $query->whereNull('effective_to')->orWhere('effective_to', '>=', $date->format('Y-m-d'));
+                })
+                ->where('status', 'active')
+                ->latest('effective_from')
+                ->first();
+
+            if ($assignment) {
+                return $assignment;
+            }
+        }
+
+        if ($user->division_id) {
+            $assignment = LeavePolicyAssignment::where('division_id', $user->division_id)
+                ->where('effective_from', '<=', $date->format('Y-m-d'))
+                ->where(function ($query) use ($date) {
+                    $query->whereNull('effective_to')->orWhere('effective_to', '>=', $date->format('Y-m-d'));
+                })
+                ->where('status', 'active')
+                ->latest('effective_from')
+                ->first();
+
+            if ($assignment) {
+                return $assignment;
+            }
+        }
+
+        if ($user->branch_id) {
+            $assignment = LeavePolicyAssignment::where('branch_id', $user->branch_id)
+                ->where('effective_from', '<=', $date->format('Y-m-d'))
+                ->where(function ($query) use ($date) {
+                    $query->whereNull('effective_to')->orWhere('effective_to', '>=', $date->format('Y-m-d'));
+                })
+                ->where('status', 'active')
+                ->latest('effective_from')
+                ->first();
+
+            if ($assignment) {
+                return $assignment;
+            }
+        }
+
+        if ($user->company_id) {
+            
+            $assignment = LeavePolicyAssignment::where('company_id', $user->company_id)
+                ->where('effective_from', '<=', $date->format('Y-m-d'))
+                ->where(function ($query) use ($date) {
+                    $query->whereNull('effective_to')->orWhere('effective_to', '>=', $date->format('Y-m-d'));
+                })
+                ->where('status', 'active')
+                ->latest('effective_from')
+                ->first();
+
+            if ($assignment) {
+                return $assignment;
+            }
+        }
+
+        return null;
+    }
 
     public function validate(User $employee, LeaveType $leaveType, LeavePolicy $policy, \DateTimeInterface $startDate, \DateTimeInterface $endDate, ?LeaveApplication $existingApplication = null): array
     {
@@ -109,14 +248,14 @@ class LeaveValidationService
             }
         }
 
-        $attachmentRequired = $this->isAttachmentRequired($policy);
+        $attachmentRequired = $this->isAttachmentRequired($policy, $leaveType);
         if ($attachmentRequired) {
             if (!$existingApplication || $existingApplication->attachments()->count() === 0) {
                 $errors[] = 'Attachment is required for this leave type.';
             }
         }
 
-        $medicalCertificateRequired = $this->isMedicalCertificateRequired($policy);
+        $medicalCertificateRequired = $this->isMedicalCertificateRequired($policy, $leaveType);
         if ($medicalCertificateRequired) {
             if (!$existingApplication || $existingApplication->attachments()->where('mime_type', 'like', 'application/pdf')->count() === 0) {
                 $errors[] = 'Medical certificate is required for this leave type.';
@@ -151,23 +290,23 @@ class LeaveValidationService
             ->first();
     }
 
-    private function isAttachmentRequired(LeavePolicy $policy): bool
+    private function isAttachmentRequired(LeavePolicy $policy, LeaveType $leaveType): bool
     {
-        $rule = $policy->details()
+        $detail = $policy->details()
+            ->where('leave_type_id', $leaveType->id)
             ->where('status', 'active')
-            ->where('rule_type', 'attachment_required')
             ->first();
 
-        return $rule ? (bool) $rule->rule_value : false;
+        return $detail ? (bool) $detail->attachment_required : false;
     }
 
-    private function isMedicalCertificateRequired(LeavePolicy $policy): bool
+    private function isMedicalCertificateRequired(LeavePolicy $policy, LeaveType $leaveType): bool
     {
-        $rule = $policy->details()
+        $detail = $policy->details()
+            ->where('leave_type_id', $leaveType->id)
             ->where('status', 'active')
-            ->where('rule_type', 'medical_certificate_required')
             ->first();
 
-        return $rule ? (bool) $rule->rule_value : false;
+        return $detail ? (bool) $detail->medical_certificate_required : false;
     }
 }

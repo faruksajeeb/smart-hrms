@@ -93,4 +93,33 @@ class LeaveApplication extends Model
     {
         return $this->hasMany(LeaveAttachment::class);
     }
+
+    public function canEdit(): bool
+    {
+        return $this->status === LeaveApplicationStatus::Draft;
+    }
+
+    public function canSubmit(): bool
+    {
+        return $this->status === LeaveApplicationStatus::Draft;
+    }
+
+    public function canCancel(): bool
+    {
+        return in_array($this->status, [
+            LeaveApplicationStatus::Submitted,
+            LeaveApplicationStatus::Pending,
+            LeaveApplicationStatus::Approved,
+        ]);
+    }
+
+    public function canWithdraw(): bool
+    {
+        return $this->status === LeaveApplicationStatus::Pending;
+    }
+
+    public function canDelete(): bool
+    {
+        return $this->status === LeaveApplicationStatus::Draft;
+    }
 }

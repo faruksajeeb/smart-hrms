@@ -13,6 +13,18 @@ const navigation = [
         route: 'employee.leave',
         permission: 'manage leave requests',
         roles: ['employee'],
+        children: [
+            {
+                label: 'My Applications',
+                route: 'employee.leave.applications.index',
+                active: 'employee.leave.applications.*',
+            },
+            {
+                label: 'Apply for Leave',
+                route: 'employee.leave.applications.create',
+                active: 'employee.leave.applications.create',
+            },
+        ],
     },
 ];
 

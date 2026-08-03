@@ -1,9 +1,7 @@
 import { Head, Link } from '@inertiajs/react';
-import HRLayout from '@/Layouts/HRLayout';
+import EmployeeLayout from '@/Layouts/EmployeeLayout';
 
-export default function IndexComponent({ applications, employees = [], leaveTypes = [], statuses = [], filters = {} }) {
-    const { delete: destroy } = useForm();
-
+export default function IndexComponent({ applications, leaveTypes = [], statuses = [], filters = {} }) {
     const handleFilterChange = (key, value) => {
         const params = new URLSearchParams(window.location.search);
         if (value) {
@@ -12,12 +10,6 @@ export default function IndexComponent({ applications, employees = [], leaveType
             params.delete(key);
         }
         window.location.search = params.toString();
-    };
-
-    const confirmDelete = (id) => {
-        if (confirm('Are you sure you want to delete this application?')) {
-            destroy(route('hr.leave.applications.destroy', id));
-        }
     };
 
     const getStatusBadge = (status) => {
@@ -35,19 +27,19 @@ export default function IndexComponent({ applications, employees = [], leaveType
     };
 
     return (
-        <HRLayout
-            heading="Leave Applications"
-            subheading="Manage employee leave applications."
+        <EmployeeLayout
+            heading="My Leave Applications"
+            subheading="View and manage your leave applications."
         >
-            <Head title="Leave Applications" />
+            <Head title="My Leave Applications" />
             <div className="space-y-6">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <Link
-                            href={route('hr.leave.applications.create')}
+                            href={route('employee.leave.applications.create')}
                             className="inline-flex items-center rounded-xl bg-sky-700 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-800"
                         >
-                            + Apply Leave
+                            + Apply for Leave
                         </Link>
                     </div>
                 </div>
@@ -58,25 +50,7 @@ export default function IndexComponent({ applications, employees = [], leaveType
                             Filters
                         </h2>
                     </div>
-                    <div className="grid grid-cols-1 gap-6 p-6 lg:grid-cols-4">
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700">
-                                Employee
-                            </label>
-                            <select
-                                value={filters.employee_id || ''}
-                                onChange={(e) => handleFilterChange('employee_id', e.target.value)}
-                                className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2"
-                            >
-                                <option value="">All Employees</option>
-                                {employees.map((employee) => (
-                                    <option key={employee.id} value={employee.id}>
-                                        {employee.employee_id} - {employee.name}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-
+                    <div className="grid grid-cols-1 gap-6 p-6 lg:grid-cols-2">
                         <div>
                             <label className="block text-sm font-medium text-slate-700">
                                 Leave Type
@@ -124,9 +98,6 @@ export default function IndexComponent({ applications, employees = [], leaveType
                                         Application No
                                     </th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">
-                                        Employee
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">
                                         Leave Type
                                     </th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">
@@ -151,9 +122,6 @@ export default function IndexComponent({ applications, employees = [], leaveType
                                                 {application.application_no}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                                                {application.employee?.name}
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
                                                 {application.leaveType?.leave_name}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
@@ -170,42 +138,34 @@ export default function IndexComponent({ applications, employees = [], leaveType
                                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                                 <div className="flex items-center gap-2">
                                                     <Link
-                                                        href={route('hr.leave.applications.show', application)}
+                                                        href={route('employee.leave.applications.show', application)}
                                                         className="text-sky-700 hover:text-sky-900"
                                                     >
                                                         View
                                                     </Link>
-                                                    {application.canEdit() && (
+                                                    {application.can_edit && (
                                                         <Link
-                                                            href={route('hr.leave.applications.edit', application)}
+                                                            href={route('employee.leave.applications.edit', application)}
                                                             className="text-indigo-700 hover:text-indigo-900"
                                                         >
                                                             Edit
                                                         </Link>
                                                     )}
-                                                    {application.canSubmit() && (
+                                                    {application.can_submit && (
+                                                        <form action={route('employee.leave.applications.submit', application)} method="POST" className="inline">
+                                                            <input type="hidden" name="_token" value={document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''} />
+                                                            <button type="submit" className="text-green-700 hover:text-green-900">
+                                                                Submit
+                                                            </button>
+                                                        </form>
+                                                    )}
+                                                    {application.can_delete && (
                                                         <button
                                                             onClick={() => {
-                                                                if (confirm('Submit this leave application for approval?')) {
-                                                                    window.location.href = route('hr.leave.applications.submit', application);
+                                                                if (confirm('Are you sure you want to delete this application?')) {
+                                                                    window.location.href = route('employee.leave.applications.destroy', application);
                                                                 }
                                                             }}
-                                                            className="text-green-700 hover:text-green-900"
-                                                        >
-                                                            Submit
-                                                        </button>
-                                                    )}
-                                                    {application.canCancel() && (
-                                                        <button
-                                                            onClick={() => confirmDelete(application.id)}
-                                                            className="text-red-700 hover:text-red-900"
-                                                        >
-                                                            Cancel
-                                                        </button>
-                                                    )}
-                                                    {application.canDelete() && (
-                                                        <button
-                                                            onClick={() => confirmDelete(application.id)}
                                                             className="text-red-700 hover:text-red-900"
                                                         >
                                                             Delete
@@ -217,7 +177,7 @@ export default function IndexComponent({ applications, employees = [], leaveType
                                     ))
                                 ) : (
                                     <tr>
-                                        <td colSpan="7" className="px-6 py-12 text-center text-sm text-slate-500">
+                                        <td colSpan="6" className="px-6 py-12 text-center text-sm text-slate-500">
                                             No leave applications found.
                                         </td>
                                     </tr>
@@ -234,6 +194,6 @@ export default function IndexComponent({ applications, employees = [], leaveType
                     ) : null}
                 </div>
             </div>
-        </HRLayout>
+        </EmployeeLayout>
     );
 }

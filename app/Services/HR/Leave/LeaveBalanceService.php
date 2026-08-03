@@ -180,6 +180,34 @@ class LeaveBalanceService
         return $results;
     }
 
+    public function getAllBalances(User $user): array
+    {
+        $latestLedgers = LeaveBalanceLedger::where('user_id', $user->id)
+            ->orderBy('leave_type_id')
+            ->orderBy('transaction_date', 'desc')
+            ->orderBy('id', 'desc')
+            ->get()
+            ->unique('leave_type_id');
+
+        $balances = [];
+        foreach ($latestLedgers as $ledger) {
+            $leaveType = $ledger->leaveType;
+            if (!$leaveType) {
+                continue;
+            }
+
+            $balances[] = [
+                'leave_type_id' => $ledger->leave_type_id,
+                'leave_name' => $leaveType->leave_name,
+                'leave_code' => $leaveType->leave_code,
+                'balance' => (float) $ledger->balance_after,
+                'last_transaction_date' => $ledger->transaction_date,
+            ];
+        }
+
+        return $balances;
+    }
+
     public function syncOpeningBalances(): array
     {
         $results = [

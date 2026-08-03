@@ -30,8 +30,14 @@ class LeavePolicyDetailController extends Controller
 
     public function create(LeavePolicy $leavePolicy): Response
     {
+        $leaveTypes = \App\Models\LeaveType::where('status', 'active')
+            ->orderBy('display_order')
+            ->orderBy('leave_name')
+            ->get(['id', 'leave_name', 'leave_code']);
+
         return Inertia::render('HR/Leave/LeavePolicyDetails/Create', [
             'policy' => $leavePolicy,
+            'leaveTypes' => $leaveTypes,
         ]);
     }
 

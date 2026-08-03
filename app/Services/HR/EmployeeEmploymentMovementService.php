@@ -21,16 +21,16 @@ class EmployeeEmploymentMovementService
             $history = EmployeeEmploymentHistory::create([
                 'user_id' => $employee->id,
                 'event_type' => EmploymentMovementType::InitialAppointment->value,
-                'company_id' => $employee->company_id,
-                'branch_id' => $employee->branch_id,
-                'cluster_id' => $employee->cluster_id,
-                'division_id' => $employee->division_id,
-                'department_id' => $employee->department_id,
-                'section_id' => $employee->section_id,
-                'unit_id' => $employee->unit_id,
-                'designation_id' => $employee->designation_id,
-                'employment_type_id' => $employee->employment_type_id,
-                'reporting_manager_id' => $employee->reporting_manager_id,
+                'company_id' => $data['company_id'] ?? $employee->company_id,
+                'branch_id' => $data['branch_id'] ?? $employee->branch_id,
+                'cluster_id' => $data['cluster_id'] ?? $employee->cluster_id,
+                'division_id' => $data['division_id'] ?? $employee->division_id,
+                'department_id' => $data['department_id'] ?? $employee->department_id,
+                'section_id' => $data['section_id'] ?? $employee->section_id,
+                'unit_id' => $data['unit_id'] ?? $employee->unit_id,
+                'designation_id' => $data['designation_id'] ?? $employee->designation_id,
+                'employment_type_id' => $data['employment_type_id'] ?? $employee->employment_type_id,
+                'reporting_manager_id' => $data['reporting_manager_id'] ?? $employee->reporting_manager_id,
                 'effective_from' => $data['effective_from'] ?? $employee->joining_date ?? now()->toDateString(),
                 'effective_to' => null,
                 'reason' => $data['reason'] ?? null,
@@ -38,6 +38,8 @@ class EmployeeEmploymentMovementService
                 'created_by' => $userId,
                 'updated_by' => $userId,
             ]);
+
+            $this->updateEmployeeMaster($employee, $history, $userId);
 
             return $history;
         });
@@ -55,7 +57,7 @@ class EmployeeEmploymentMovementService
             $this->closeCurrentHistory($employee, $data['effective_from']);
 
             $oldValues = $this->getCurrentValues($employee);
-            $newValues = $this->normalizeNewValues($data);
+            $newValues = $this->normalizeNewValues($data, $oldValues);
 
             $changes = $this->detectChanges($oldValues, $newValues);
 
@@ -81,7 +83,7 @@ class EmployeeEmploymentMovementService
                 'updated_by' => $userId,
             ]);
 
-            $this->updateEmployeeMaster($employee, $newValues, $oldValues, $userId);
+            $this->updateEmployeeMaster($employee, $history, $userId);
 
             return $history;
         });
@@ -101,45 +103,41 @@ class EmployeeEmploymentMovementService
     }
 
     protected function validateTimeline(
-    User $employee,
-    Carbon $effectiveFrom
-): void {
+        User $employee,
+        Carbon $effectiveFrom
+    ): void {
+        if ($effectiveFrom->lt(Carbon::parse($employee->joining_date))) {
+            throw ValidationException::withMessages([
+                'effective_from' => 'Effective date cannot be earlier than the employee joining date.',
+            ]);
+        }
 
-    // 1. Effective date cannot be before joining date.
-    if ($effectiveFrom->lt(Carbon::parse($employee->joining_date))) {
-        throw ValidationException::withMessages([
-            'effective_from' => 'Effective date cannot be earlier than the employee joining date.',
-        ]);
+        $duplicate = EmployeeEmploymentHistory::query()
+            ->where('user_id', $employee->id)
+            ->whereDate('effective_from', $effectiveFrom)
+            ->exists();
+
+        if ($duplicate) {
+            throw ValidationException::withMessages([
+                'effective_from' => 'An employment movement already exists for the selected effective date.',
+            ]);
+        }
+
+        $current = EmployeeEmploymentHistory::query()
+            ->where('user_id', $employee->id)
+            ->whereNull('effective_to')
+            ->latest('effective_from')
+            ->first();
+
+        if (
+            $current &&
+            $effectiveFrom->lt($current->effective_from)
+        ) {
+            throw ValidationException::withMessages([
+                'effective_from' => 'Backdated employment movements are not allowed. Please use the Employment History Correction feature.',
+            ]);
+        }
     }
-
-    // 2. Only one movement is allowed for the same effective date.
-    $duplicate = EmployeeEmploymentHistory::query()
-        ->where('user_id', $employee->id)
-        ->whereDate('effective_from', $effectiveFrom)
-        ->exists();
-
-    if ($duplicate) {
-        throw ValidationException::withMessages([
-            'effective_from' => 'An employment movement already exists for the selected effective date.',
-        ]);
-    }
-
-    // 3. Do not allow backdated movements.
-    $current = EmployeeEmploymentHistory::query()
-        ->where('user_id', $employee->id)
-        ->whereNull('effective_to')
-        ->latest('effective_from')
-        ->first();
-
-    if (
-        $current &&
-        $effectiveFrom->lt($current->effective_from)
-    ) {
-        throw ValidationException::withMessages([
-            'effective_from' => 'Backdated employment movements are not allowed. Please use the Employment History Correction feature.',
-        ]);
-    }
-}
 
     protected function closeCurrentHistory(User $employee, string|Carbon $effectiveFrom): void
     {
@@ -175,20 +173,31 @@ class EmployeeEmploymentMovementService
         ];
     }
 
-    protected function normalizeNewValues(array $data): array
+    protected function normalizeNewValues(array $data, array $oldValues): array
     {
-        return [
-            'company_id' => $data['company_id'] ?? null,
-            'branch_id' => $data['branch_id'] ?? null,
-            'cluster_id' => $data['cluster_id'] ?? null,
-            'division_id' => $data['division_id'] ?? null,
-            'department_id' => $data['department_id'] ?? null,
-            'section_id' => $data['section_id'] ?? null,
-            'unit_id' => $data['unit_id'] ?? null,
-            'designation_id' => $data['designation_id'] ?? null,
-            'employment_type_id' => $data['employment_type_id'] ?? null,
-            'reporting_manager_id' => $data['reporting_manager_id'] ?? null,
+        $fields = [
+            'company_id',
+            'branch_id',
+            'cluster_id',
+            'division_id',
+            'department_id',
+            'section_id',
+            'unit_id',
+            'designation_id',
+            'employment_type_id',
+            'reporting_manager_id',
         ];
+
+        $result = [];
+        foreach ($fields as $field) {
+            if (array_key_exists($field, $data)) {
+                $result[$field] = $data[$field];
+            } else {
+                $result[$field] = $oldValues[$field] ?? null;
+            }
+        }
+
+        return $result;
     }
 
     protected function detectChanges(array $oldValues, array $newValues): array
@@ -226,15 +235,28 @@ class EmployeeEmploymentMovementService
 
     protected function updateEmployeeMaster(
         User $employee,
-        array $newValues,
-        array $oldValues,
+        EmployeeEmploymentHistory $history,
         ?int $userId = null
     ): void {
         $update = [];
 
-        foreach ($newValues as $field => $value) {
-            if ($oldValues[$field] != $value) {
-                $update[$field] = $value;
+        $fields = [
+            'company_id',
+            'branch_id',
+            'cluster_id',
+            'division_id',
+            'department_id',
+            'section_id',
+            'unit_id',
+            'designation_id',
+            'employment_type_id',
+            'reporting_manager_id',
+        ];
+
+        foreach ($fields as $field) {
+            $newValue = $history->$field;
+            if ($newValue !== null && $employee->$field != $newValue) {
+                $update[$field] = $newValue;
             }
         }
 

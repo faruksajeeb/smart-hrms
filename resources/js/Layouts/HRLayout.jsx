@@ -130,6 +130,11 @@ const navigation = [
                 route: 'hr.leave.ledgers.index',
                 active: 'hr.leave.ledgers.*',
             },
+            {
+                label: 'Leave Applications',
+                route: 'hr.leave.applications.index',
+                active: 'hr.leave.applications.*',
+            },
         ],
     },
     {

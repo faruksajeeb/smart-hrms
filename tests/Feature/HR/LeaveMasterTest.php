@@ -7,6 +7,7 @@ use App\Models\LeavePolicyAssignment;
 use App\Models\HolidayCalendar;
 use App\Models\LeaveOpeningBalance;
 use App\Models\LeaveBalanceLedger;
+use App\Models\MasterDataItem;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 
@@ -121,6 +122,54 @@ it('allows hr to view policy assignments', function () {
 
     $response->assertStatus(200);
     $response->assertInertia(fn ($page) => $page->component('HR/Leave/LeavePolicyAssignments/Index'));
+});
+
+it('allows hr to view policy assignments with filters', function () {
+    $hr = User::factory()->create(['status' => User::STATUS_ACTIVE]);
+    $hr->assignRole(User::ROLE_HR);
+
+    $company = MasterDataItem::create([
+        'category' => MasterDataItem::CATEGORY_COMPANY,
+        'code' => 'TEST-CO',
+        'name' => 'Test Company',
+        'status' => MasterDataItem::STATUS_ACTIVE,
+    ]);
+
+    $branch = MasterDataItem::create([
+        'category' => MasterDataItem::CATEGORY_BRANCH,
+        'code' => 'TEST-BR',
+        'name' => 'Test Branch',
+        'parent_id' => $company->id,
+        'status' => MasterDataItem::STATUS_ACTIVE,
+    ]);
+
+    $division = MasterDataItem::create([
+        'category' => MasterDataItem::CATEGORY_DIVISION,
+        'code' => 'TEST-DIV',
+        'name' => 'Test Division',
+        'parent_id' => $branch->id,
+        'status' => MasterDataItem::STATUS_ACTIVE,
+    ]);
+
+    $policy = LeavePolicy::factory()->create(['status' => 'active']);
+
+    $employee = User::factory()->create([
+        'status' => User::STATUS_ACTIVE,
+        'employee_id' => 'EMP-001',
+    ]);
+
+    $response = $this->actingAs($hr)->get(route('hr.leave.assignments.index'));
+
+    $response->assertStatus(200);
+    $response->assertInertia(fn ($page) => $page->component('HR/Leave/LeavePolicyAssignments/Index')
+        ->where('assignments.data', [])
+        ->where('filters', [])
+        ->where('companies', fn ($companies) => count($companies) >= 1)
+        ->where('branches', fn ($branches) => count($branches) >= 1)
+        ->where('divisions', fn ($divisions) => count($divisions) >= 1)
+        ->where('policies', fn ($policies) => count($policies) >= 1)
+        ->where('users', fn ($users) => count($users) >= 1)
+    );
 });
 
 it('allows hr to view holidays index', function () {

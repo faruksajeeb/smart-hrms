@@ -22,7 +22,7 @@ class LeavePolicyAssignmentController extends Controller
 
     public function index(Request $request): Response
     {
-        $query = LeavePolicyAssignment::query()->with(['policy', 'company', 'branch', 'employee']);
+        $query = LeavePolicyAssignment::query()->with(['policy', 'company', 'branch', 'division', 'employee']);
 
         if ($request->filled('search')) {
             $search = $request->string('search');
@@ -31,10 +31,62 @@ class LeavePolicyAssignmentController extends Controller
             });
         }
 
-        $assignments = $query->orderBy('effective_from', 'desc')->paginate(15);
+        if ($request->filled('employee')) {
+            $query->where('user_id', $request->integer('employee'));
+        }
+
+        if ($request->filled('company')) {
+            $query->where('company_id', $request->integer('company'));
+        }
+
+        if ($request->filled('branch')) {
+            $query->where('branch_id', $request->integer('branch'));
+        }
+
+        if ($request->filled('division')) {
+            $query->where('division_id', $request->integer('division'));
+        }
+
+        if ($request->filled('policy')) {
+            $query->where('leave_policy_id', $request->integer('policy'));
+        }
+
+        $assignments = $query->orderBy('effective_from', 'desc')->paginate(10)->withQueryString();
+
+        $companies = MasterDataItem::query()
+            ->where('category', MasterDataItem::CATEGORY_COMPANY)
+            ->where('status', MasterDataItem::STATUS_ACTIVE)
+            ->orderBy('name')
+            ->get(['id', 'name', 'code']);
+
+        $branches = MasterDataItem::query()
+            ->where('category', MasterDataItem::CATEGORY_BRANCH)
+            ->where('status', MasterDataItem::STATUS_ACTIVE)
+            ->orderBy('name')
+            ->get(['id', 'name', 'code']);
+
+        $divisions = MasterDataItem::query()
+            ->where('category', MasterDataItem::CATEGORY_DIVISION)
+            ->where('status', MasterDataItem::STATUS_ACTIVE)
+            ->orderBy('name')
+            ->get(['id', 'name', 'code']);
+
+        $policies = LeavePolicy::where('status', 'active')
+            ->orderBy('policy_name')
+            ->get(['id', 'policy_name', 'policy_code']);
+
+        $users = \App\Models\User::where('status', \App\Models\User::STATUS_ACTIVE)
+            ->orderBy('name')
+            ->get(['id', 'name', 'employee_id']);
 
         return Inertia::render('HR/Leave/LeavePolicyAssignments/Index', [
             'assignments' => $assignments,
+            'filters' => $request->only(['employee', 'company', 'branch', 'division', 'policy', 'search']),
+            'companies' => $companies,
+            'branches' => $branches,
+            'divisions' => $divisions,
+            'policies' => $policies,
+            'users' => $users,
         ]);
     }
 

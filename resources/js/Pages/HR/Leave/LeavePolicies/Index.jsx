@@ -91,6 +91,15 @@ export default function IndexComponent({ policies }) {
                                                 </Link>
                                                 <Link
                                                     href={route(
+                                                        "hr.leave.policies.details.index",
+                                                        policy.id,
+                                                    )}
+                                                    className="rounded-lg border border-sky-300 px-3 py-1.5 text-xs font-medium text-sky-700 hover:bg-sky-50"
+                                                >
+                                                    Manage Rules
+                                                </Link>
+                                                <Link
+                                                    href={route(
                                                         "hr.leave.policies.edit",
                                                         policy.id,
                                                     )}

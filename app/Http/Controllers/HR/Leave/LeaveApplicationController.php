@@ -29,14 +29,6 @@ class LeaveApplicationController extends Controller
 
         if ($user->hasRole(User::ROLE_EMPLOYEE)) {
             $query->where('user_id', $user->id);
-        } elseif ($user->hasRole(User::ROLE_HR)) {
-            if ($request->filled('employee_id')) {
-                $query->where('user_id', $request->integer('employee_id'));
-            }
-        } elseif ($user->hasRole(User::ROLE_HR)) {
-            if ($request->filled('employee_id')) {
-                $query->where('user_id', $request->integer('employee_id'));
-            }
         } else {
             if ($request->filled('employee_id')) {
                 $query->where('user_id', $request->integer('employee_id'));
@@ -77,6 +69,59 @@ class LeaveApplicationController extends Controller
         ]);
     }
 
+    public function employeeIndex(Request $request): Response
+    {
+        $user = $request->user();
+
+        $query = LeaveApplication::query()->with(['leaveType', 'leavePolicy'])
+            ->where('user_id', $user->id);
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->string('status'));
+        }
+
+        if ($request->filled('leave_type_id')) {
+            $query->where('leave_type_id', $request->integer('leave_type_id'));
+        }
+
+        $applications = $query->orderBy('created_at', 'desc')->paginate(15);
+
+        $applications->getCollection()->transform(function ($application) {
+            return [
+                'id' => $application->id,
+                'application_no' => $application->application_no,
+                'leave_type_id' => $application->leave_type_id,
+                'leavePolicy' => $application->leavePolicy,
+                'leaveType' => $application->leaveType,
+                'start_date' => $application->start_date,
+                'end_date' => $application->end_date,
+                'total_days' => $application->total_days,
+                'status' => $application->status,
+                'can_edit' => $application->canEdit(),
+                'can_submit' => $application->canSubmit(),
+                'can_delete' => $application->canDelete(),
+                'can_cancel' => $application->canCancel(),
+            ];
+        });
+
+        $leaveTypes = LeaveType::where('status', 'active')
+            ->orderBy('display_order')
+            ->orderBy('leave_name')
+            ->get(['id', 'leave_name', 'leave_code']);
+
+        $statuses = \App\Enums\LeaveApplicationStatus::options();
+
+        return Inertia::render('Employee/Leave/Applications/Index', [
+            'applications' => $applications,
+            'leaveTypes' => $leaveTypes,
+            'statuses' => $statuses,
+            'filters' => [
+                'status' => $request->string('status'),
+                'leave_type_id' => $request->integer('leave_type_id'),
+            ],
+        ]);
+    }
+
     public function create(): Response
     {
         $user = auth()->user();
@@ -103,6 +148,43 @@ class LeaveApplicationController extends Controller
             ->with('policy')
             ->get();
 
+        if (request()->routeIs('employee.*')) {
+            $startDate = now();
+            $assignment = $this->service->resolvePolicy($user, $startDate);
+
+            if (!$assignment) {
+                return Inertia::render('Employee/Leave/Applications/Create', [
+                    'leaveTypes' => $leaveTypes,
+                    'policies' => $policies,
+                    'policyError' => 'You are not assigned to any Leave Policy. Please contact HR.',
+                ]);
+            }
+
+            $eligibleLeaveTypes = $assignment->policy->details()
+                ->where('status', 'active')
+                ->with('leaveType')
+                ->get()
+                ->map(fn($detail) => $detail->leaveType)
+                ->filter();
+
+            $policyDetails = $assignment->policy->details()
+                ->where('status', 'active')
+                ->with('leaveType')
+                ->get();
+
+            $leaveBalances = $this->service->getAllBalances($user);
+
+            return Inertia::render('Employee/Leave/Applications/Create', [
+                'leaveTypes' => $eligibleLeaveTypes,
+                'allLeaveTypes' => $leaveTypes,
+                'activePolicy' => $assignment->policy,
+                'policyDetails' => $policyDetails,
+                'leaveBalances' => $leaveBalances,
+                'user' => $user,
+                'assignment' => $assignment,
+            ]);
+        }
+
         return Inertia::render('HR/Leave/LeaveApplications/Create', [
             'leaveTypes' => $leaveTypes,
             'policies' => $policies,
@@ -115,16 +197,44 @@ class LeaveApplicationController extends Controller
         $validated = $request->validated();
         $user = $request->user();
 
-        $application = $this->service->createDraft($user, $validated, $user->id);
+        try {
+            $application = $this->service->createDraft($user, $validated, $user->id);
 
-        return redirect()
-            ->route('hr.leave.applications.edit', $application)
-            ->with('success', 'Leave application created as draft successfully.');
+            if (request()->routeIs('employee.*')) {
+                return redirect()
+                    ->route('employee.leave.applications.index')
+                    ->with('success', 'Leave application created as draft successfully.');
+            }
+
+            return redirect()
+                ->route('hr.leave.applications.edit', $application)
+                ->with('success', 'Leave application created as draft successfully.');
+        } catch (\RuntimeException $e) {
+            if (request()->routeIs('employee.*')) {
+                return redirect()
+                    ->route('employee.leave.applications.create')
+                    ->with('error', $e->getMessage());
+            }
+
+            return back()->with('error', $e->getMessage());
+        }
     }
 
     public function show(LeaveApplication $application): Response
     {
+        $user = request()->user();
+
+        if (request()->routeIs('employee.*') && $application->user_id !== $user->id) {
+            abort(403);
+        }
+
         $application->load(['employee', 'leaveType', 'leavePolicy', 'days', 'attachments.uploader', 'creator', 'updater']);
+
+        if (request()->routeIs('employee.*')) {
+            return Inertia::render('Employee/Leave/Applications/Show', [
+                'application' => $application,
+            ]);
+        }
 
         return Inertia::render('HR/Leave/LeaveApplications/Show', [
             'application' => $application,
@@ -133,6 +243,12 @@ class LeaveApplicationController extends Controller
 
     public function edit(LeaveApplication $application): Response
     {
+        $user = request()->user();
+
+        if (request()->routeIs('employee.*') && $application->user_id !== $user->id) {
+            abort(403);
+        }
+
         if (!$application->canEdit()) {
             return redirect()->route('hr.leave.applications.index')->with('error', 'Only draft applications can be edited.');
         }
@@ -148,6 +264,45 @@ class LeaveApplicationController extends Controller
             ->orderBy('policy_name')
             ->get(['id', 'policy_name', 'policy_code']);
 
+        if (request()->routeIs('employee.*')) {
+            $startDate = \Carbon\Carbon::parse($application->start_date ?? now());
+            $assignment = $this->service->resolvePolicy($application->employee, $startDate);
+
+            if (!$assignment) {
+                return Inertia::render('Employee/Leave/Applications/Edit', [
+                    'application' => $application,
+                    'leaveTypes' => $leaveTypes,
+                    'policies' => $policies,
+                    'policyError' => 'You are not assigned to any Leave Policy. Please contact HR.',
+                ]);
+            }
+
+            $eligibleLeaveTypes = $assignment->policy->details()
+                ->where('status', 'active')
+                ->with('leaveType')
+                ->get()
+                ->map(fn($detail) => $detail->leaveType)
+                ->filter();
+
+            $policyDetails = $assignment->policy->details()
+                ->where('status', 'active')
+                ->with('leaveType')
+                ->get();
+
+            $leaveBalances = $this->service->getAllBalances($application->employee);
+
+            return Inertia::render('Employee/Leave/Applications/Edit', [
+                'application' => $application,
+                'leaveTypes' => $eligibleLeaveTypes,
+                'allLeaveTypes' => $leaveTypes,
+                'activePolicy' => $assignment->policy,
+                'policyDetails' => $policyDetails,
+                'leaveBalances' => $leaveBalances,
+                'user' => $application->employee,
+                'assignment' => $assignment,
+            ]);
+        }
+
         return Inertia::render('HR/Leave/LeaveApplications/Edit', [
             'application' => $application,
             'leaveTypes' => $leaveTypes,
@@ -161,6 +316,12 @@ class LeaveApplicationController extends Controller
 
         $this->service->updateDraft($application, $validated, $application->updated_by ?? auth()->id());
 
+        if (request()->routeIs('employee.*')) {
+            return redirect()
+                ->route('employee.leave.applications.index')
+                ->with('success', 'Leave application updated successfully.');
+        }
+
         return redirect()
             ->route('hr.leave.applications.edit', $application)
             ->with('success', 'Leave application updated successfully.');
@@ -170,8 +331,17 @@ class LeaveApplicationController extends Controller
     {
         try {
             $this->service->submit($application, auth()->id());
+
+            if (request()->routeIs('employee.*')) {
+                return redirect()->route('employee.leave.applications.index')->with('success', 'Leave application submitted successfully.');
+            }
+
             return redirect()->route('hr.leave.applications.index')->with('success', 'Leave application submitted successfully.');
         } catch (\RuntimeException $e) {
+            if (request()->routeIs('employee.*')) {
+                return redirect()->route('employee.leave.applications.index')->with('error', $e->getMessage());
+            }
+
             return back()->with('error', $e->getMessage());
         }
     }
