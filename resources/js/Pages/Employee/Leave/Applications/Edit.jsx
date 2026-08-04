@@ -1,20 +1,32 @@
 import { Head, useForm, Link } from '@inertiajs/react';
+import { useState } from 'react';
 import EmployeeLayout from '@/Layouts/EmployeeLayout';
+import { useMemo } from 'react';
+import LeaveAttachmentUpload from '@/Components/LeaveAttachmentUpload';
 
-export default function EditComponent({ application, leaveTypes = [], allLeaveTypes = [], activePolicy = null, policyDetails = [], leaveBalances = [], policyError = null, user = {} }) {
-    const { data, setData, put, processing, errors } = useForm({
+export default function EditComponent({ application, leaveTypes = [], allLeaveTypes = [], activePolicy = null, policyDetails = [], leaveBalances = [], policyError = null, user = {}, employees = [] }) {
+    const [showPolicyRules, setShowPolicyRules] = useState(false);
+
+    const { data, setData, put, post, processing, errors } = useForm({
         leave_type_id: application.leave_type_id,
-        start_date: application.start_date,
-        end_date: application.end_date,
+        start_date: application.start_date ? new Date(application.start_date).toISOString().split('T')[0] : '',
+        end_date: application.end_date ? new Date(application.end_date).toISOString().split('T')[0] : '',
         is_half_day: application.is_half_day,
         half_day_session: application.half_day_session || 'morning',
         is_emergency: application.is_emergency,
         reason: application.reason || '',
+        delegate_user_id: application.delegate_user_id || '',
     });
 
-    const { data: attachmentData, setData: setAttachmentData, post: postAttachment, processing: attachmentProcessing, reset: resetAttachment } = useForm({
-        file: null,
-    });
+    const selectedPolicyDetail = useMemo(() => {
+        if (!data.leave_type_id || !policyDetails.length) return null;
+        return policyDetails.find(
+            (d) => d.leave_type_id === parseInt(data.leave_type_id)
+        );
+    }, [data.leave_type_id, policyDetails]);
+
+    const delegateRequired = selectedPolicyDetail?.delegate_required ?? false;
+    const delegateAcknowledgementRequired = selectedPolicyDetail?.delegate_acknowledgement_required ?? false;
 
     const submit = (e) => {
         e.preventDefault();
@@ -23,18 +35,40 @@ export default function EditComponent({ application, leaveTypes = [], allLeaveTy
         });
     };
 
-    const uploadAttachment = (e) => {
-        e.preventDefault();
-        if (!attachmentData.file) return;
+    const handleUploadAttachment = async (file) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('_token', document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '');
+
+        const response = await fetch(route('employee.leave.applications.attachments.store', application.id), {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.message || 'Upload failed');
+        }
+    };
+
+    const handleRemoveAttachment = (attachmentId) => {
+        if (!confirm('Delete this attachment?')) return;
 
         const formData = new FormData();
-        formData.append('file', attachmentData.file);
+        formData.append('_method', 'DELETE');
+        formData.append('_token', document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '');
 
-        postAttachment(route('employee.leave.applications.attachments.store', application.id), {
-            data: formData,
-            onSuccess: () => {
-                resetAttachment();
+        fetch(route('employee.leave.applications.attachments.destroy', attachmentId), {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
             },
+        }).then(() => {
+            window.location.reload();
         });
     };
 
@@ -63,55 +97,75 @@ export default function EditComponent({ application, leaveTypes = [], allLeaveTy
 
                         {policyDetails.length > 0 && (
                             <div className="p-5">
-                                <h5 className="text-xs font-semibold uppercase text-sky-800 mb-3">Policy Rules</h5>
-                                <div className="overflow-x-auto rounded-xl border border-sky-100">
-                                    <table className="min-w-full divide-y divide-sky-100 text-xs">
-                                        <thead className="bg-sky-50">
-                                            <tr>
-                                                <th className="px-3 py-2 text-left font-semibold text-sky-900">Leave Type</th>
-                                                <th className="px-3 py-2 text-left font-semibold text-sky-900">Entitlement</th>
-                                                <th className="px-3 py-2 text-left font-semibold text-sky-900">Accrual</th>
-                                                <th className="px-3 py-2 text-left font-semibold text-sky-900">Min / Max</th>
-                                                <th className="px-3 py-2 text-left font-semibold text-sky-900">Notice</th>
-                                                <th className="px-3 py-2 text-left font-semibold text-sky-900">Gender</th>
-                                                <th className="px-3 py-2 text-left font-semibold text-sky-900">Marital</th>
-                                                <th className="px-3 py-2 text-left font-semibold text-sky-900">Flags</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-sky-100 bg-white/70">
-                                            {policyDetails.map((detail) => (
-                                                <tr key={detail.id} className="hover:bg-sky-50/60">
-                                                    <td className="px-3 py-2 font-medium text-sky-900">{detail.leaveType?.leave_name || 'Unknown'}</td>
-                                                    <td className="px-3 py-2 text-sky-700">{detail.annual_entitlement}</td>
-                                                    <td className="px-3 py-2 text-sky-700">{detail.accrual_method}</td>
-                                                    <td className="px-3 py-2 text-sky-700">{detail.minimum_days_per_application} - {detail.maximum_days_per_application || '∞'}</td>
-                                                    <td className="px-3 py-2 text-sky-700">{detail.notice_period_days}</td>
-                                                    <td className="px-3 py-2 text-sky-700">{detail.gender_restriction}</td>
-                                                    <td className="px-3 py-2 text-sky-700">{detail.marital_status_restriction}</td>
-                                                    <td className="px-3 py-2 text-sky-700">
-                                                        <div className="flex flex-wrap gap-1">
-                                                            {detail.carry_forward_allowed && (
-                                                                <span className="rounded bg-sky-100 px-1.5 py-0.5 text-[10px] font-medium text-sky-700">Carry Forward</span>
-                                                            )}
-                                                            {detail.encashment_allowed && (
-                                                                <span className="rounded bg-sky-100 px-1.5 py-0.5 text-[10px] font-medium text-sky-700">Encashment</span>
-                                                            )}
-                                                            {detail.half_day_allowed && (
-                                                                <span className="rounded bg-sky-100 px-1.5 py-0.5 text-[10px] font-medium text-sky-700">Half Day</span>
-                                                            )}
-                                                            {detail.attachment_required && (
-                                                                <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">Attachment</span>
-                                                            )}
-                                                            {detail.medical_certificate_required && (
-                                                                <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">Medical Cert</span>
-                                                            )}
-                                                        </div>
-                                                    </td>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPolicyRules(!showPolicyRules)}
+                                    className="flex w-full items-center justify-between rounded-lg bg-sky-100 px-4 py-3 text-left text-sm font-semibold text-sky-900 hover:bg-sky-200"
+                                >
+                                    <span>Policy Rules ({policyDetails.length})</span>
+                                    <svg
+                                        className={`h-5 w-5 transform transition-transform ${showPolicyRules ? 'rotate-180' : ''}`}
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                    >
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                </button>
+
+                                {showPolicyRules && (
+                                    <div className="mt-3 overflow-x-auto rounded-xl border border-sky-100">
+                                        <table className="min-w-full divide-y divide-sky-100 text-xs">
+                                            <thead className="bg-sky-50">
+                                                <tr>
+                                                    <th className="px-3 py-2 text-left font-semibold text-sky-900">Leave Type</th>
+                                                    <th className="px-3 py-2 text-left font-semibold text-sky-900">Entitlement</th>
+                                                    <th className="px-3 py-2 text-left font-semibold text-sky-900">Accrual</th>
+                                                    <th className="px-3 py-2 text-left font-semibold text-sky-900">Min / Max</th>
+                                                    <th className="px-3 py-2 text-left font-semibold text-sky-900">Notice</th>
+                                                    <th className="px-3 py-2 text-left font-semibold text-sky-900">Gender</th>
+                                                    <th className="px-3 py-2 text-left font-semibold text-sky-900">Marital</th>
+                                                    <th className="px-3 py-2 text-left font-semibold text-sky-900">Flags</th>
                                                 </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
+                                            </thead>
+                                            <tbody className="divide-y divide-sky-100 bg-white/70">
+                                                {policyDetails.map((detail) => (
+                                                    <tr key={detail.id} className="hover:bg-sky-50/60">
+                                                        <td className="px-3 py-2 font-medium text-sky-900">{detail.leave_type?.leave_name || 'Unknown'}</td>
+                                                        <td className="px-3 py-2 text-sky-700">{detail.annual_entitlement}</td>
+                                                        <td className="px-3 py-2 text-sky-700">{detail.accrual_method}</td>
+                                                        <td className="px-3 py-2 text-sky-700">{detail.minimum_days_per_application} - {detail.maximum_days_per_application || '∞'}</td>
+                                                        <td className="px-3 py-2 text-sky-700">{detail.notice_period_days}</td>
+                                                        <td className="px-3 py-2 text-sky-700">{detail.gender_restriction}</td>
+                                                        <td className="px-3 py-2 text-sky-700">{detail.marital_status_restriction}</td>
+                                                        <td className="px-3 py-2 text-sky-700">
+                                                            <div className="flex flex-wrap gap-1">
+                                                                {detail.carry_forward_allowed && (
+                                                                    <span className="rounded bg-sky-100 px-1.5 py-0.5 text-[10px] font-medium text-sky-700">Carry Forward</span>
+                                                                )}
+                                                                {detail.encashment_allowed && (
+                                                                    <span className="rounded bg-sky-100 px-1.5 py-0.5 text-[10px] font-medium text-sky-700">Encashment</span>
+                                                                )}
+                                                                {detail.half_day_allowed && (
+                                                                    <span className="rounded bg-sky-100 px-1.5 py-0.5 text-[10px] font-medium text-sky-700">Half Day</span>
+                                                                )}
+                                                                {detail.attachment_required && (
+                                                                    <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">Attachment</span>
+                                                                )}
+                                                                {detail.medical_certificate_required && (
+                                                                    <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">Medical Cert</span>
+                                                                )}
+                                                                {detail.delegate_required && (
+                                                                    <span className="rounded bg-indigo-100 px-1.5 py-0.5 text-[10px] font-medium text-indigo-700">Delegate</span>
+                                                                )}
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>
@@ -172,6 +226,55 @@ export default function EditComponent({ application, leaveTypes = [], allLeaveTy
                                 {errors.leave_type_id && (
                                     <p className="mt-1 text-sm text-red-600">{errors.leave_type_id}</p>
                                 )}
+                            </div>
+
+                            {selectedPolicyDetail && (
+                                <div className="lg:col-span-2">
+                                    <div className={`rounded-xl border px-4 py-3 text-sm ${
+                                        delegateRequired
+                                            ? "border-indigo-200 bg-indigo-50 text-indigo-800"
+                                            : "border-slate-200 bg-slate-50 text-slate-600"
+                                    }`}>
+                                        {delegateRequired ? (
+                                            <>
+                                                <span className="font-semibold">Acting Person Required:</span>{" "}
+                                                This leave type requires assigning an Acting Person.
+                                                {delegateAcknowledgementRequired
+                                                    ? " The Acting Person must acknowledge the work handover before the leave can proceed."
+                                                    : " No acknowledgement is required from the Acting Person."}
+                                            </>
+                                        ) : (
+                                            <>
+                                                <span className="font-semibold">Acting Person:</span>{" "}
+                                                This leave type does not require an Acting Person, but you may still assign one if needed.
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className={delegateRequired ? "lg:col-span-2" : ""}>
+                                <label className="block text-sm font-medium text-slate-700">
+                                    Acting Person {delegateRequired && <span className="text-red-500">*</span>}
+                                </label>
+                                <select
+                                    value={data.delegate_user_id}
+                                    onChange={(e) => setData('delegate_user_id', e.target.value)}
+                                    className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2"
+                                >
+                                    <option value="">Select Acting Person</option>
+                                    {employees.map((emp) => (
+                                        <option key={emp.id} value={emp.id}>
+                                            {emp.name} ({emp.employee_id})
+                                        </option>
+                                    ))}
+                                </select>
+                                {errors.delegate_user_id && (
+                                    <p className="mt-1 text-sm text-red-600">{errors.delegate_user_id}</p>
+                                )}
+                                <p className="mt-1 text-xs text-slate-500">
+                                    Only active employees from the same company are shown.
+                                </p>
                             </div>
 
                             <div>
@@ -262,43 +365,15 @@ export default function EditComponent({ application, leaveTypes = [], allLeaveTy
                             </div>
 
                             <div className="lg:col-span-2">
-                                <label className="block text-sm font-medium text-slate-700">
-                                    Attachments
-                                </label>
-
-                                {application.attachments && application.attachments.length > 0 && (
-                                    <ul className="mt-2 mb-3 space-y-1">
-                                        {application.attachments.map((attachment) => (
-                                            <li key={attachment.id} className="flex items-center justify-between text-sm text-slate-600">
-                                                <a href={`/storage/${attachment.file_path}`} target="_blank" className="text-sky-700 hover:text-sky-900">
-                                                    {attachment.file_name}
-                                                </a>
-                                                <form action={route('employee.leave.applications.attachments.destroy', attachment)} method="POST" className="inline" onSubmit={() => confirm('Delete this attachment?') || event.preventDefault()}>
-                                                    <input type="hidden" name="_token" value={document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''} />
-                                                    <input type="hidden" name="_method" value="DELETE" />
-                                                    <button type="submit" className="text-red-600 hover:text-red-800">
-                                                        Delete
-                                                    </button>
-                                                </form>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                )}
-
-                                <form onSubmit={uploadAttachment} className="mt-2 flex items-center gap-3">
-                                    <input
-                                        type="file"
-                                        onChange={(e) => setAttachmentData('file', e.target.files?.[0] ?? null)}
-                                        className="block w-full text-sm text-slate-500 file:mr-4 file:rounded-xl file:border-0 file:bg-sky-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-sky-700 hover:file:bg-sky-100"
-                                    />
-                                    <button
-                                        type="submit"
-                                        disabled={attachmentProcessing}
-                                        className="inline-flex items-center rounded-xl bg-sky-700 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-800 disabled:opacity-50"
-                                    >
-                                        Upload
-                                    </button>
-                                </form>
+                                <LeaveAttachmentUpload
+                                    application={application}
+                                    attachments={application.attachments || []}
+                                    policyDetail={selectedPolicyDetail}
+                                    onUpload={handleUploadAttachment}
+                                    onRemove={handleRemoveAttachment}
+                                    onComplete={() => window.location.reload()}
+                                    processing={processing}
+                                />
                             </div>
                         </div>
 

@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 use App\Enums\LeaveApplicationStatus;
 use App\Enums\LeaveApplicationType;
+use App\Enums\DelegateStatus;
 
 #[Fillable([
     'application_no',
@@ -33,6 +34,10 @@ use App\Enums\LeaveApplicationType;
     'approved_at',
     'rejected_at',
     'remarks',
+    'delegate_user_id',
+    'delegate_status',
+    'delegate_responded_at',
+    'delegate_remarks',
     'created_by',
     'updated_by',
 ])]
@@ -51,11 +56,13 @@ class LeaveApplication extends Model
             'requested_days' => 'decimal:2',
             'status' => LeaveApplicationStatus::class,
             'application_type' => LeaveApplicationType::class,
+            'delegate_status' => DelegateStatus::class,
             'submitted_at' => 'datetime',
             'cancelled_at' => 'datetime',
             'withdrawn_at' => 'datetime',
             'approved_at' => 'datetime',
             'rejected_at' => 'datetime',
+            'delegate_responded_at' => 'datetime',
         ];
     }
 
@@ -82,6 +89,11 @@ class LeaveApplication extends Model
     public function updater(): BelongsTo
     {
         return $this->belongsTo(User::class, 'updated_by');
+    }
+
+    public function delegate(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'delegate_user_id');
     }
 
     public function days(): HasMany

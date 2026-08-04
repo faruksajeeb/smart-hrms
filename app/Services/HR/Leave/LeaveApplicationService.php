@@ -78,6 +78,7 @@ class LeaveApplicationService
                 'half_day_session' => $data['half_day_session'] ?? null,
                 'is_emergency' => $data['is_emergency'] ?? false,
                 'reason' => $data['reason'] ?? null,
+                'delegate_user_id' => $data['delegate_user_id'] ?? null,
                 'status' => LeaveApplicationStatus::Draft,
                 'created_by' => $userId ?? Auth::id(),
                 'updated_by' => $userId ?? Auth::id(),
@@ -146,6 +147,7 @@ class LeaveApplicationService
                 'half_day_session' => $data['half_day_session'] ?? null,
                 'is_emergency' => $data['is_emergency'] ?? false,
                 'reason' => $data['reason'] ?? null,
+                'delegate_user_id' => $data['delegate_user_id'] ?? null,
                 'updated_by' => $userId ?? Auth::id(),
             ]);
 
@@ -214,8 +216,82 @@ class LeaveApplicationService
                 $this->finalizeApproval($application, $userId ?? Auth::id());
             }
 
+            if ($application->delegate_user_id) {
+                $detail = $application->leavePolicy->details()
+                    ->where('leave_type_id', $application->leave_type_id)
+                    ->where('status', 'active')
+                    ->first();
+
+                if ($detail && $detail->delegate_acknowledgement_required) {
+                    $application->update([
+                        'delegate_status' => \App\Enums\DelegateStatus::Pending,
+                        'updated_by' => $userId ?? Auth::id(),
+                    ]);
+
+                    $delegate = User::find($application->delegate_user_id);
+                    if ($delegate) {
+                        $delegate->notify(new \App\Notifications\DelegateAssignedNotification($application->fresh()));
+                    }
+                } else {
+                    $application->update([
+                        'delegate_status' => \App\Enums\DelegateStatus::Accepted,
+                        'delegate_responded_at' => now(),
+                        'updated_by' => $userId ?? Auth::id(),
+                    ]);
+
+                    $delegate = User::find($application->delegate_user_id);
+                    if ($delegate) {
+                        $delegate->notify(new \App\Notifications\DelegateAssignedNotification($application->fresh()));
+                    }
+                }
+            }
+
             return $application->fresh();
         });
+    }
+
+    public function acceptDelegate(LeaveApplication $application, ?string $remarks = null, ?int $userId = null): LeaveApplication
+    {
+        if (!$application->delegate_user_id) {
+            throw new \RuntimeException('No delegate assigned to this leave application.');
+        }
+
+        if ($application->delegate_status !== \App\Enums\DelegateStatus::Pending) {
+            throw new \RuntimeException('Delegate acknowledgement is not pending.');
+        }
+
+        $application->update([
+            'delegate_status' => \App\Enums\DelegateStatus::Accepted,
+            'delegate_remarks' => $remarks,
+            'delegate_responded_at' => now(),
+            'updated_by' => $userId ?? Auth::id(),
+        ]);
+
+        $application->employee->notify(new \App\Notifications\DelegateAcceptedNotification($application->fresh()));
+
+        return $application->fresh();
+    }
+
+    public function declineDelegate(LeaveApplication $application, ?string $remarks = null, ?int $userId = null): LeaveApplication
+    {
+        if (!$application->delegate_user_id) {
+            throw new \RuntimeException('No delegate assigned to this leave application.');
+        }
+
+        if ($application->delegate_status !== \App\Enums\DelegateStatus::Pending) {
+            throw new \RuntimeException('Delegate acknowledgement is not pending.');
+        }
+
+        $application->update([
+            'delegate_status' => \App\Enums\DelegateStatus::Declined,
+            'delegate_remarks' => $remarks,
+            'delegate_responded_at' => now(),
+            'updated_by' => $userId ?? Auth::id(),
+        ]);
+
+        $application->employee->notify(new \App\Notifications\DelegateDeclinedNotification($application->fresh()));
+
+        return $application->fresh();
     }
 
     public function cancel(LeaveApplication $application, ?string $remarks = null, ?int $userId = null): LeaveApplication

@@ -18,7 +18,7 @@ export default function Show({ ledger }) {
                                     Ledger Entry #{ledger.id}
                                 </h3>
                                 <p className="mt-1 text-sm text-slate-500">
-                                    {ledger.employee?.name} - {ledger.leaveType?.leave_name}
+                                    {ledger.employee?.name} - {ledger.leave_type?.leave_name}
                                 </p>
                             </div>
                             <a

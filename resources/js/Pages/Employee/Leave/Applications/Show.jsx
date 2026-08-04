@@ -1,7 +1,9 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, useForm } from '@inertiajs/react';
 import EmployeeLayout from '@/Layouts/EmployeeLayout';
 
 export default function ShowComponent({ application }) {
+    const { post, processing } = useForm();
+
     const getStatusBadge = (status) => {
         const colors = {
             draft: 'bg-gray-100 text-gray-800',
@@ -12,6 +14,15 @@ export default function ShowComponent({ application }) {
             cancelled: 'bg-red-100 text-red-800',
             withdrawn: 'bg-orange-100 text-orange-800',
             expired: 'bg-gray-100 text-gray-800',
+        };
+        return colors[status] || 'bg-gray-100 text-gray-800';
+    };
+
+    const getDelegateStatusBadge = (status) => {
+        const colors = {
+            pending: 'bg-yellow-100 text-yellow-800',
+            accepted: 'bg-green-100 text-green-800',
+            declined: 'bg-red-100 text-red-800',
         };
         return colors[status] || 'bg-gray-100 text-gray-800';
     };
@@ -31,7 +42,7 @@ export default function ShowComponent({ application }) {
                                     {application.application_no}
                                 </h3>
                                 <p className="mt-1 text-sm text-slate-500">
-                                    {application.leaveType?.leave_name}
+                                    {application.leave_type?.leave_name}
                                 </p>
                             </div>
                             <div className="flex items-center gap-3">
@@ -50,12 +61,17 @@ export default function ShowComponent({ application }) {
                                     </Link>
                                 )}
                                 {application.can_submit && (
-                                    <form action={route('employee.leave.applications.submit', application)} method="POST" className="inline">
-                                        <input type="hidden" name="_token" value={document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''} />
-                                        <button type="submit" className="inline-flex items-center rounded-xl bg-green-700 px-4 py-2 text-sm font-semibold text-white hover:bg-green-800">
-                                            Submit
-                                        </button>
-                                    </form>
+                                    <button
+                                        onClick={() => {
+                                            if (confirm('Submit this leave application for approval?')) {
+                                                post(route('employee.leave.applications.submit', application));
+                                            }
+                                        }}
+                                        disabled={processing}
+                                        className="inline-flex items-center rounded-xl bg-green-700 px-4 py-2 text-sm font-semibold text-white hover:bg-green-800 disabled:opacity-50"
+                                    >
+                                        Submit
+                                    </button>
                                 )}
                             </div>
                         </div>
@@ -76,12 +92,12 @@ export default function ShowComponent({ application }) {
 
                         <div>
                             <h4 className="text-sm font-medium text-slate-500">Leave Type</h4>
-                            <p className="mt-1 font-semibold text-slate-900">{application.leaveType?.leave_name}</p>
+                            <p className="mt-1 font-semibold text-slate-900">{application.leave_type?.leave_name}</p>
                         </div>
 
                         <div>
                             <h4 className="text-sm font-medium text-slate-500">Leave Policy</h4>
-                            <p className="mt-1 font-semibold text-slate-900">{application.leavePolicy?.policy_name}</p>
+                            <p className="mt-1 font-semibold text-slate-900">{application.leave_policy?.policy_name}</p>
                         </div>
 
                         <div>
@@ -125,6 +141,38 @@ export default function ShowComponent({ application }) {
                             <h4 className="text-sm font-medium text-slate-500">Emergency Leave</h4>
                             <p className="mt-1 font-semibold text-slate-900">{application.is_emergency ? 'Yes' : 'No'}</p>
                         </div>
+
+                        <div>
+                            <h4 className="text-sm font-medium text-slate-500">Acting Person</h4>
+                            <p className="mt-1 font-semibold text-slate-900">
+                                {application.delegate?.name || '-'}
+                            </p>
+                        </div>
+
+                        {application.delegate_status && (
+                            <div>
+                                <h4 className="text-sm font-medium text-slate-500">Delegate Status</h4>
+                                <span className={`mt-1 inline-flex rounded-full px-2 py-1 text-xs font-semibold ${getDelegateStatusBadge(application.delegate_status)}`}>
+                                    {application.delegate_status}
+                                </span>
+                            </div>
+                        )}
+
+                        {application.delegate_responded_at && (
+                            <div>
+                                <h4 className="text-sm font-medium text-slate-500">Delegate Responded At</h4>
+                                <p className="mt-1 font-semibold text-slate-900">
+                                    {new Date(application.delegate_responded_at).toLocaleString()}
+                                </p>
+                            </div>
+                        )}
+
+                        {application.delegate_remarks && (
+                            <div className="lg:col-span-2">
+                                <h4 className="text-sm font-medium text-slate-500">Delegate Remarks</h4>
+                                <p className="mt-1 font-semibold text-slate-900">{application.delegate_remarks}</p>
+                            </div>
+                        )}
 
                         <div className="lg:col-span-2">
                             <h4 className="text-sm font-medium text-slate-500">Reason</h4>
@@ -187,10 +235,19 @@ export default function ShowComponent({ application }) {
                             <ul className="space-y-2">
                                 {application.attachments.map((attachment) => (
                                     <li key={attachment.id} className="flex items-center justify-between">
-                                        <a href={`/storage/${attachment.file_path}`} target="_blank" className="text-sky-700 hover:text-sky-900">
-                                            {attachment.file_name}
-                                        </a>
-                                        <span className="text-sm text-slate-500">{attachment.mime_type}</span>
+                                        <div className="flex items-center gap-3">
+                                            <a href={route('employee.leave.applications.attachments.download', [application.id, attachment.id])} className="text-sky-700 hover:text-sky-900">
+                                                {attachment.original_file_name || attachment.file_name}
+                                            </a>
+                                            <span className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${
+                                                attachment.status === 'verified' ? 'bg-green-100 text-green-700' :
+                                                attachment.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                                                'bg-yellow-100 text-yellow-700'
+                                            }`}>
+                                                {attachment.status}
+                                            </span>
+                                        </div>
+                                        <span className="text-sm text-slate-500">{(attachment.file_size / 1024).toFixed(1)} KB</span>
                                     </li>
                                 ))}
                             </ul>

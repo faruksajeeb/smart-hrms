@@ -97,6 +97,9 @@ class LeaveApplicationController extends Controller
                 'end_date' => $application->end_date,
                 'total_days' => $application->total_days,
                 'status' => $application->status,
+                'delegate_user_id' => $application->delegate_user_id,
+                'delegate' => $application->delegate,
+                'delegate_status' => $application->delegate_status,
                 'can_edit' => $application->canEdit(),
                 'can_submit' => $application->canSubmit(),
                 'can_delete' => $application->canDelete(),
@@ -182,6 +185,11 @@ class LeaveApplicationController extends Controller
                 'leaveBalances' => $leaveBalances,
                 'user' => $user,
                 'assignment' => $assignment,
+                'employees' => User::where('status', User::STATUS_ACTIVE)
+                    ->where('id', '!=', $user->id)
+                    ->where('company_id', $user->company_id)
+                    ->orderBy('name')
+                    ->get(['id', 'name', 'employee_id', 'department_id', 'branch_id']),
             ]);
         }
 
@@ -300,6 +308,11 @@ class LeaveApplicationController extends Controller
                 'leaveBalances' => $leaveBalances,
                 'user' => $application->employee,
                 'assignment' => $assignment,
+                'employees' => User::where('status', User::STATUS_ACTIVE)
+                    ->where('id', '!=', $application->employee->id)
+                    ->where('company_id', $application->employee->company_id)
+                    ->orderBy('name')
+                    ->get(['id', 'name', 'employee_id', 'department_id', 'branch_id']),
             ]);
         }
 

@@ -19,6 +19,8 @@ export default function Create({ policy, leaveTypes = [], errors = {} }) {
         hourly_leave_allowed: false,
         attachment_required: false,
         medical_certificate_required: false,
+        delegate_required: false,
+        delegate_acknowledgement_required: false,
         notice_period_days: 0,
         minimum_service_months: 0,
         probation_allowed: true,
@@ -350,6 +352,30 @@ export default function Create({ policy, leaveTypes = [], errors = {} }) {
                                     className="rounded border-slate-300"
                                 />
                                 <span className="text-sm text-slate-700">Medical Certificate Required</span>
+                            </label>
+                        </div>
+
+                        <div className="flex items-center gap-6">
+                            <label className="flex items-center gap-2">
+                                <input
+                                    type="checkbox"
+                                    checked={data.delegate_required}
+                                    onChange={(e) => setData('delegate_required', e.target.checked)}
+                                    className="rounded border-slate-300"
+                                />
+                                <span className="text-sm text-slate-700">Delegate Required</span>
+                            </label>
+                        </div>
+
+                        <div className="flex items-center gap-6">
+                            <label className="flex items-center gap-2">
+                                <input
+                                    type="checkbox"
+                                    checked={data.delegate_acknowledgement_required}
+                                    onChange={(e) => setData('delegate_acknowledgement_required', e.target.checked)}
+                                    className="rounded border-slate-300"
+                                />
+                                <span className="text-sm text-slate-700">Delegate Acknowledgement Required</span>
                             </label>
                         </div>
 

@@ -55,6 +55,7 @@ class LeavePolicyDetailController extends Controller
 
     public function edit(LeavePolicy $leavePolicy, LeavePolicyDetail $detail): Response
     {
+        $detail->load('leaveType');
         return Inertia::render('HR/Leave/LeavePolicyDetails/Edit', [
             'policy' => $leavePolicy,
             'detail' => $detail,

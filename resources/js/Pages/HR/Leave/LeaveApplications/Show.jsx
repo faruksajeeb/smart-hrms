@@ -31,7 +31,7 @@ export default function ShowComponent({ application }) {
                                     {application.application_no}
                                 </h3>
                                 <p className="mt-1 text-sm text-slate-500">
-                                    {application.employee?.name} - {application.leaveType?.leave_name}
+                                    {application.employee?.name} - {application.leave_type?.leave_name}
                                 </p>
                             </div>
                             <div className="flex items-center gap-3">
@@ -81,12 +81,12 @@ export default function ShowComponent({ application }) {
 
                         <div>
                             <h4 className="text-sm font-medium text-slate-500">Leave Type</h4>
-                            <p className="mt-1 font-semibold text-slate-900">{application.leaveType?.leave_name}</p>
+                            <p className="mt-1 font-semibold text-slate-900">{application.leave_type?.leave_name}</p>
                         </div>
 
                         <div>
                             <h4 className="text-sm font-medium text-slate-500">Leave Policy</h4>
-                            <p className="mt-1 font-semibold text-slate-900">{application.leavePolicy?.policy_name}</p>
+                            <p className="mt-1 font-semibold text-slate-900">{application.leave_policy?.policy_name}</p>
                         </div>
 
                         <div>
@@ -192,10 +192,19 @@ export default function ShowComponent({ application }) {
                             <ul className="space-y-2">
                                 {application.attachments.map((attachment) => (
                                     <li key={attachment.id} className="flex items-center justify-between">
-                                        <a href={`/storage/${attachment.file_path}`} target="_blank" className="text-sky-700 hover:text-sky-900">
-                                            {attachment.file_name}
-                                        </a>
-                                        <span className="text-sm text-slate-500">{attachment.mime_type}</span>
+                                        <div className="flex items-center gap-3">
+                                            <a href={route('hr.leave.attachments.download', attachment.id)} className="text-sky-700 hover:text-sky-900">
+                                                {attachment.original_file_name || attachment.file_name}
+                                            </a>
+                                            <span className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${
+                                                attachment.status === 'verified' ? 'bg-green-100 text-green-700' :
+                                                attachment.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                                                'bg-yellow-100 text-yellow-700'
+                                            }`}>
+                                                {attachment.status}
+                                            </span>
+                                        </div>
+                                        <span className="text-sm text-slate-500">{(attachment.file_size / 1024).toFixed(1)} KB</span>
                                     </li>
                                 ))}
                             </ul>

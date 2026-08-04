@@ -49,6 +49,8 @@ class StoreLeavePolicyDetailRequest extends FormRequest
             "hourly_leave_allowed" => ["boolean"],
             "attachment_required" => ["boolean"],
             "medical_certificate_required" => ["boolean"],
+            "delegate_required" => ["boolean"],
+            "delegate_acknowledgement_required" => ["boolean"],
             "notice_period_days" => ["required", "integer", "min:0"],
             "minimum_service_months" => ["required", "integer", "min:0"],
             "probation_allowed" => ["boolean"],

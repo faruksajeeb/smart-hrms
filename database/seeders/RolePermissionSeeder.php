@@ -26,6 +26,15 @@ class RolePermissionSeeder extends Seeder
             );
         }
 
+        foreach (AccessControl::defaultRolePermissions() as $rolePermissions) {
+            foreach ($rolePermissions as $permission) {
+                Permission::updateOrCreate(
+                    ['name' => $permission, 'guard_name' => 'web'],
+                    ['group_name' => 'System'],
+                );
+            }
+        }
+
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         $roles = AccessControl::defaultRolePermissions();

@@ -1,7 +1,9 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, useForm } from '@inertiajs/react';
 import EmployeeLayout from '@/Layouts/EmployeeLayout';
 
 export default function IndexComponent({ applications, leaveTypes = [], statuses = [], filters = {} }) {
+    const { post, processing } = useForm();
+
     const handleFilterChange = (key, value) => {
         const params = new URLSearchParams(window.location.search);
         if (value) {
@@ -152,12 +154,17 @@ export default function IndexComponent({ applications, leaveTypes = [], statuses
                                                         </Link>
                                                     )}
                                                     {application.can_submit && (
-                                                        <form action={route('employee.leave.applications.submit', application)} method="POST" className="inline">
-                                                            <input type="hidden" name="_token" value={document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''} />
-                                                            <button type="submit" className="text-green-700 hover:text-green-900">
-                                                                Submit
-                                                            </button>
-                                                        </form>
+                                                        <button
+                                                            onClick={() => {
+                                                                if (confirm('Submit this leave application for approval?')) {
+                                                                    post(route('employee.leave.applications.submit', application));
+                                                                }
+                                                            }}
+                                                            disabled={processing}
+                                                            className="text-green-700 hover:text-green-900"
+                                                        >
+                                                            Submit
+                                                        </button>
                                                     )}
                                                     {application.can_delete && (
                                                         <button

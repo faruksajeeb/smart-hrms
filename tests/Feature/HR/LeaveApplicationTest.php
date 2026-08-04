@@ -28,7 +28,10 @@ beforeEach(function () {
     ];
 
     foreach ($permissions as $permission) {
-        Permission::create(['name' => $permission, 'guard_name' => 'web', 'group_name' => 'leave']);
+        Permission::updateOrCreate(
+            ['name' => $permission, 'guard_name' => 'web'],
+            ['group_name' => 'leave']
+        );
     }
 });
 

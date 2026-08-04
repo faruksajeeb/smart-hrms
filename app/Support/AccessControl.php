@@ -76,6 +76,18 @@ class AccessControl
             User::ROLE_EMPLOYEE => [
                 'manage attendance',
                 'manage leave requests',
+                'leave.view-own-applications',
+                'leave.apply',
+                'leave.edit-own-application',
+                'leave.submit-application',
+                'leave.cancel-own-application',
+                'leave.withdraw-application',
+                'leave.upload-attachment',
+                'leave.delete-attachment',
+                'leave.download-attachment',
+                'leave.view-delegations',
+                'leave.accept-delegation',
+                'leave.decline-delegation',
             ],
         ];
     }

@@ -3,6 +3,7 @@
 namespace App\Services\HR\Leave;
 
 use App\Enums\LeaveApplicationStatus;
+use App\Enums\DelegateStatus;
 use App\Models\EmployeeEmploymentHistory;
 use App\Models\HolidayCalendar;
 use App\Models\LeaveApplication;
@@ -250,8 +251,19 @@ class LeaveValidationService
 
         $attachmentRequired = $this->isAttachmentRequired($policy, $leaveType);
         if ($attachmentRequired) {
-            if (!$existingApplication || $existingApplication->attachments()->count() === 0) {
-                $errors[] = 'Attachment is required for this leave type.';
+            $requiredAfterDays = $this->getAttachmentRequiredAfterDays($policy, $leaveType);
+            $requestedDays = $existingApplication
+                ? $existingApplication->requested_days
+                : $this->calculateDaysBetween($startDate, $endDate);
+
+            $isRequired = $requiredAfterDays === null || $requestedDays >= $requiredAfterDays;
+
+            if ($isRequired) {
+                if (!$existingApplication || $existingApplication->attachments()->count() === 0) {
+                    $errors[] = $requiredAfterDays !== null
+                        ? "Attachment is required because requested days ({$requestedDays}) exceed {$requiredAfterDays} days."
+                        : 'Attachment is required for this leave type.';
+                }
             }
         }
 
@@ -259,6 +271,24 @@ class LeaveValidationService
         if ($medicalCertificateRequired) {
             if (!$existingApplication || $existingApplication->attachments()->where('mime_type', 'like', 'application/pdf')->count() === 0) {
                 $errors[] = 'Medical certificate is required for this leave type.';
+            }
+        }
+
+        $delegateRequired = $this->isDelegateRequired($policy, $leaveType);
+        if ($delegateRequired) {
+            if (!$existingApplication || !$existingApplication->delegate_user_id) {
+                $errors[] = 'Delegate (Acting Person) is required for this leave type.';
+            } else {
+                $delegate = User::find($existingApplication->delegate_user_id);
+                if (!$delegate || $delegate->status !== User::STATUS_ACTIVE) {
+                    $errors[] = 'Selected delegate must be an active employee.';
+                }
+                if ($delegate->company_id !== $employee->company_id) {
+                    $errors[] = 'Delegate must belong to the same company.';
+                }
+                if ($delegate->branch_id && $employee->branch_id && $delegate->branch_id !== $employee->branch_id) {
+                    $errors[] = 'Delegate must belong to the same branch.';
+                }
             }
         }
 
@@ -300,6 +330,21 @@ class LeaveValidationService
         return $detail ? (bool) $detail->attachment_required : false;
     }
 
+    private function getAttachmentRequiredAfterDays(LeavePolicy $policy, LeaveType $leaveType): ?float
+    {
+        $detail = $policy->details()
+            ->where('leave_type_id', $leaveType->id)
+            ->where('status', 'active')
+            ->first();
+
+        return $detail ? ($detail->attachment_required_after_days ?? null) : null;
+    }
+
+    private function calculateDaysBetween(\DateTimeInterface $start, \DateTimeInterface $end): float
+    {
+        return \Carbon\Carbon::parse($start)->diffInDays(\Carbon\Carbon::parse($end)) + 1;
+    }
+
     private function isMedicalCertificateRequired(LeavePolicy $policy, LeaveType $leaveType): bool
     {
         $detail = $policy->details()
@@ -308,5 +353,15 @@ class LeaveValidationService
             ->first();
 
         return $detail ? (bool) $detail->medical_certificate_required : false;
+    }
+
+    private function isDelegateRequired(LeavePolicy $policy, LeaveType $leaveType): bool
+    {
+        $detail = $policy->details()
+            ->where('leave_type_id', $leaveType->id)
+            ->where('status', 'active')
+            ->first();
+
+        return $detail ? (bool) $detail->delegate_required : false;
     }
 }

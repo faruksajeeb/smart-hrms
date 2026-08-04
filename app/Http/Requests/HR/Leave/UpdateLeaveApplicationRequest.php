@@ -21,6 +21,7 @@ class UpdateLeaveApplicationRequest extends FormRequest
             "half_day_session" => ["nullable", "in:morning,afternoon"],
             "is_emergency" => ["boolean"],
             "reason" => ["nullable", "string", "max:1000"],
+            "delegate_user_id" => ["nullable", "integer", "exists:users,id"],
             "attachments" => ["nullable", "array"],
             "attachments.*.file_name" => ["required_with:attachments", "string", "max:255"],
             "attachments.*.file_path" => ["required_with:attachments", "string", "max:255"],

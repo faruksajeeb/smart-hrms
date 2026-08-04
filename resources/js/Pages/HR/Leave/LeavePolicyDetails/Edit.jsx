@@ -3,6 +3,7 @@ import { Head, useForm } from '@inertiajs/react';
 import HRLayout from '@/Layouts/HRLayout';
 
 export default function Edit({ policy, detail, errors = {} }) {
+    // console.log('detail:', detail); // Debugging line to check the value of detail
     const { data, setData, put, processing } = useForm({
         leave_type_id: detail.leave_type_id ?? '',
         annual_entitlement: detail.annual_entitlement ?? '',
@@ -19,6 +20,8 @@ export default function Edit({ policy, detail, errors = {} }) {
         hourly_leave_allowed: detail.hourly_leave_allowed ?? false,
         attachment_required: detail.attachment_required ?? false,
         medical_certificate_required: detail.medical_certificate_required ?? false,
+        delegate_required: detail.delegate_required ?? false,
+        delegate_acknowledgement_required: detail.delegate_acknowledgement_required ?? false,
         notice_period_days: detail.notice_period_days ?? 0,
         minimum_service_months: detail.minimum_service_months ?? 0,
         probation_allowed: detail.probation_allowed ?? true,
@@ -104,11 +107,11 @@ export default function Edit({ policy, detail, errors = {} }) {
                     <div className="grid grid-cols-1 gap-6 p-6 lg:grid-cols-2">
                         <div>
                             <label className="block text-sm font-medium text-slate-700">
-                                Leave Type <span className="text-red-500">*</span>
+                                Leave Type  <span className="text-red-500">*</span>
                             </label>
                             <input
                                 type="text"
-                                value={detail.leaveType?.leave_name || ''}
+                                value={detail.leave_type?.leave_name || '-'}
                                 disabled
                                 className="mt-1 w-full rounded-xl border border-slate-300 bg-slate-100 px-3 py-2"
                             />
@@ -341,6 +344,30 @@ export default function Edit({ policy, detail, errors = {} }) {
                                     className="rounded border-slate-300"
                                 />
                                 <span className="text-sm text-slate-700">Medical Certificate Required</span>
+                            </label>
+                        </div>
+
+                        <div className="flex items-center gap-6">
+                            <label className="flex items-center gap-2">
+                                <input
+                                    type="checkbox"
+                                    checked={data.delegate_required}
+                                    onChange={(e) => setData('delegate_required', e.target.checked)}
+                                    className="rounded border-slate-300"
+                                />
+                                <span className="text-sm text-slate-700">Delegate Required</span>
+                            </label>
+                        </div>
+
+                        <div className="flex items-center gap-6">
+                            <label className="flex items-center gap-2">
+                                <input
+                                    type="checkbox"
+                                    checked={data.delegate_acknowledgement_required}
+                                    onChange={(e) => setData('delegate_acknowledgement_required', e.target.checked)}
+                                    className="rounded border-slate-300"
+                                />
+                                <span className="text-sm text-slate-700">Delegate Acknowledgement Required</span>
                             </label>
                         </div>
 

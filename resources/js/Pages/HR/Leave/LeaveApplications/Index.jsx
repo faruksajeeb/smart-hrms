@@ -154,7 +154,7 @@ export default function IndexComponent({ applications, employees = [], leaveType
                                                 {application.employee?.name}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                                                {application.leaveType?.leave_name}
+                                                {application.leave_type?.leave_name}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
                                                 {application.start_date} to {application.end_date}

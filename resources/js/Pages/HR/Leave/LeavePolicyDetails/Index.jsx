@@ -92,6 +92,12 @@ export default function IndexComponent({ policy }) {
                                         Carry Forward
                                     </th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">
+                                        Delegate
+                                    </th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">
+                                        Delegate Ack
+                                    </th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">
                                         Status
                                     </th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">
@@ -113,6 +119,12 @@ export default function IndexComponent({ policy }) {
                                         </td>
                                         <td className="px-6 py-4 text-sm text-slate-900">
                                             {detail.carry_forward_allowed ? 'Yes' : 'No'}
+                                        </td>
+                                        <td className="px-6 py-4 text-sm text-slate-900">
+                                            {detail.delegate_required ? 'Yes' : 'No'}
+                                        </td>
+                                        <td className="px-6 py-4 text-sm text-slate-900">
+                                            {detail.delegate_acknowledgement_required ? 'Yes' : 'No'}
                                         </td>
                                         <td className="px-6 py-4 text-sm">
                                             <span
