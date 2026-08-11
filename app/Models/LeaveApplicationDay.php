@@ -40,4 +40,12 @@ class LeaveApplicationDay extends Model
     {
         return $this->belongsTo(LeaveApplication::class, 'leave_application_id');
     }
+
+    public function getLeaveDateAttribute($value)
+    {
+        if (is_null($value)) {
+            return null;
+        }
+        return \Carbon\Carbon::parse($value)->format('d-m-Y');  
+    }
 }

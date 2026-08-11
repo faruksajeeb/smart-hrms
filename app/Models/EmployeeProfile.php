@@ -98,4 +98,60 @@ class EmployeeProfile extends Model
             ? "{$this->salary_currency} ".number_format((float) $this->salary_amount, 2)
             : 'Not set');
     }
+
+    public function getJoiningDateAttribute($value)
+    {
+        if (is_null($value)) {
+            return null;
+        }
+        return \Carbon\Carbon::parse($value)->format('d-m-Y');
+    }
+
+    public function getProbationStartsOnAttribute($value)
+    {
+        if (is_null($value)) {
+            return null;
+        }
+        return \Carbon\Carbon::parse($value)->format('d-m-Y');
+    }
+
+    public function getProbationEndsOnAttribute($value)
+    {
+        if (is_null($value)) {
+            return null;
+        }
+        return \Carbon\Carbon::parse($value)->format('d-m-Y');
+    }
+
+    public function getDateOfBirthAttribute($value)
+    {
+        if (is_null($value)) {
+            return null;
+        }
+        return \Carbon\Carbon::parse($value)->format('d-m-Y');
+    }
+
+    public function getConfirmationDateAttribute($value)
+    {
+        if (is_null($value)) {
+            return null;
+        }
+        return \Carbon\Carbon::parse($value)->format('d-m-Y');
+    }
+
+    public function getTerminationDateAttribute($value)
+    {
+        if (is_null($value)) {
+            return null;
+        }
+        return \Carbon\Carbon::parse($value)->format('d-m-Y');
+    }
+
+    public function getLastRejoinedOnAttribute($value)
+    {
+        if (is_null($value)) {
+            return null;
+        }
+        return \Carbon\Carbon::parse($value)->format('d-m-Y');
+    }
 }

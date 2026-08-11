@@ -50,4 +50,12 @@ class LeaveAttachment extends Model
     {
         return $this->belongsTo(User::class, 'verified_by');
     }
+
+    public function getVerifiedAtAttribute($value)
+    {
+        if (is_null($value)) {
+            return null;
+        }
+        return \Carbon\Carbon::parse($value)->format('d-m-Y H:i');
+    }
 }

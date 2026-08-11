@@ -35,8 +35,8 @@ class StorePermissionRequest extends FormRequest
 
         $this->merge([
             'group_name' => $group ?: null,
-            'action' => $action,
-            'name' => $group ? "{$group}.{$action}" : $action,
+            'action' => $action ?: null,
+            'name' => $this->input('name') ?: ($group ? "{$group}.{$action}" : $action),
         ]);
     }
 
@@ -49,7 +49,7 @@ class StorePermissionRequest extends FormRequest
     {
         return [
             'group_name' => ['nullable', 'string', 'max:255'],
-            'action' => ['required', 'string', 'max:255'],
+            'action' => ['nullable', 'string', 'max:255'],
             'name' => ['required', 'string', 'max:255', Rule::unique('permissions', 'name')->where('guard_name', 'web')],
         ];
     }

@@ -65,4 +65,12 @@ class EmployeeDocument extends Model
     {
         return Attribute::get(fn () => self::types()[$this->document_type] ?? $this->document_type);
     }
+
+    public function getExpiryDateAttribute($value)
+    {
+        if (is_null($value)) {
+            return null;
+        }
+        return \Carbon\Carbon::parse($value)->format('d-m-Y');
+    }
 }

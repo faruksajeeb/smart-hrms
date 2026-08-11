@@ -14,6 +14,8 @@ use App\Models\EmployeeProfile;
 use App\Models\EmployeeShiftAssignment;
 use App\Models\EmployeeWeeklyOffAssignment;
 use App\Models\EmployeeReportingManagerAssignment;
+use App\Models\EmployeeEmploymentHistory;
+use App\Enums\EmploymentMovementType;
 use App\Models\MasterDataItem;
 use App\Models\Shift;
 use App\Models\User;
@@ -225,7 +227,7 @@ class EmployeeController extends Controller
                     'type' => $event->type,
                     'title' => $event->title,
                     'notes' => $event->notes,
-                    'effective_on' => $event->effective_on?->toDateString(),
+                    'effective_on' => $event->effective_on,
                     'created_at' => $event->created_at?->format('M d, Y h:i A'),
                     'created_by' => $event->creator?->name,
                 ]),
@@ -264,10 +266,15 @@ class EmployeeController extends Controller
                 User::ROLE_EMPLOYEE,
             ])));
 
-            $employee->employeeProfile()->updateOrCreate(
-                ['user_id' => $employee->id],
-                $this->profilePayload($request),
-            );
+            $profilePayload = $this->profilePayload($request);
+            $filteredProfile = array_filter($profilePayload, fn ($value) => $value !== null);
+
+            if (!empty($filteredProfile)) {
+                $employee->employeeProfile()->updateOrCreate(
+                    ['user_id' => $employee->id],
+                    $filteredProfile
+                );
+            }
 
             $this->employeeMasterData->syncTags($employee, $request->all());
 
@@ -297,6 +304,76 @@ class EmployeeController extends Controller
                         'created_by' => auth()->id(),
                         'updated_by' => auth()->id(),
                     ]);
+                }
+            }
+
+            if (! $employee->hasSubsequentEmploymentMovement()) {
+                $orgUpdate = [];
+
+                $orgFields = [
+                    'company_master_data_id' => 'company_id',
+                    'branch_master_data_id' => 'branch_id',
+                    'division_master_data_id' => 'division_id',
+                    'department_master_data_id' => 'department_id',
+                    'designation_master_data_id' => 'designation_id',
+                    'employment_type_master_data_id' => 'employment_type_id',
+                ];
+
+                foreach ($orgFields as $requestField => $userField) {
+                    if ($request->filled($requestField)) {
+                        $orgUpdate[$userField] = $request->integer($requestField);
+                    }
+                }
+
+                if ($request->filled('manager_id')) {
+                    $orgUpdate['reporting_manager_id'] = $request->integer('manager_id');
+                }
+
+                if ($request->filled('joining_date')) {
+                    $orgUpdate['joining_date'] = $request->date('joining_date');
+                }
+
+                if (!empty($orgUpdate)) {
+                    $employee->update($orgUpdate);
+                }
+
+                $initialAppointment = EmployeeEmploymentHistory::query()
+                    ->where('user_id', $employee->id)
+                    ->where('event_type', EmploymentMovementType::InitialAppointment->value)
+                    ->whereNull('effective_to')
+                    ->latest('effective_from')
+                    ->first();
+
+                if ($initialAppointment) {
+                    $historyUpdate = [];
+
+                    $historyFields = [
+                        'company_master_data_id' => 'company_id',
+                        'branch_master_data_id' => 'branch_id',
+                        'division_master_data_id' => 'division_id',
+                        'department_master_data_id' => 'department_id',
+                        'designation_master_data_id' => 'designation_id',
+                        'employment_type_master_data_id' => 'employment_type_id',
+                    ];
+
+                    foreach ($historyFields as $requestField => $historyField) {
+                        if ($request->filled($requestField)) {
+                            $historyUpdate[$historyField] = $request->integer($requestField);
+                        }
+                    }
+
+                    if ($request->filled('manager_id')) {
+                        $historyUpdate['reporting_manager_id'] = $request->integer('manager_id');
+                    }
+
+                    if ($request->filled('joining_date')) {
+                        $historyUpdate['effective_from'] = $request->date('joining_date');
+                    }
+
+                    if (!empty($historyUpdate)) {
+                        $historyUpdate['updated_by'] = auth()->id();
+                        $initialAppointment->update($historyUpdate);
+                    }
                 }
             }
 
@@ -532,8 +609,8 @@ class EmployeeController extends Controller
             'employment_status' => $profile?->employment_status ?? 'not_setup',
             'department' => $profile?->department,
             'designation' => $profile?->designation,
-            'joining_date' => $profile?->joining_date?->toDateString(),
-            'probation_ends_on' => $profile?->probation_ends_on?->toDateString(),
+            'joining_date' => $profile?->getRawOriginal('joining_date'),
+            'probation_ends_on' => $profile?->getRawOriginal('probation_ends_on'),
             'salary' => $profile?->salary_display ?? 'Not set',
             'photo_url' => $this->photoUrl($employee),
             'company_id' => $employee->company_id,
@@ -556,6 +633,7 @@ class EmployeeController extends Controller
             'employment_type_name' => optional($employee->employmentType)->name,
             'reporting_manager_id' => $employee->reporting_manager_id,
             'reporting_manager_name' => optional($employee->reportingManager)->name,
+            'is_employment_locked' => $employee->hasSubsequentEmploymentMovement(),
         ];
     }
 
@@ -586,7 +664,7 @@ class EmployeeController extends Controller
                 'employment_type' => $profile->employment_type,
                 'work_location' => $profile->work_location,
                 'phone' => $profile->phone,
-                'date_of_birth' => $profile->date_of_birth?->toDateString(),
+                'date_of_birth' => $profile->getRawOriginal('date_of_birth'),
                 'nationality' => $profile->nationality,
                 'address' => $profile->address,
                 'skills' => $profile->skills,
@@ -595,7 +673,7 @@ class EmployeeController extends Controller
                 'blood_group' => $profile->blood_group,
                 'marital_status' => $profile->marital_status,
                 'qualification' => $profile->qualification,
-                'joining_date' => $profile->joining_date?->toDateString(),
+                'joining_date' => $profile->getRawOriginal('joining_date'),
                 'shift_id' => optional($employee->shiftAssignments()->where('is_current', true)->first())->shift_id,
                 'weekly_off_policy_id' => optional($employee->weeklyOffAssignments()->where('is_current', true)->first())->weekly_off_policy_id,
                 'current_shift_assignment_id' => optional($employee->shiftAssignments()->where('is_current', true)->first())->id,
@@ -648,10 +726,9 @@ class EmployeeController extends Controller
                         'assignment_type' => $assignment->assignment_type,
                     ];
                 })(),
-                'probation_starts_on' => $profile->probation_starts_on?->toDateString(),
-                'probation_ends_on' => $profile->probation_ends_on?->toDateString(),
-                'probation_status' => $profile->probation_status,
-                'confirmation_date' => $profile->confirmation_date?->toDateString(),
+                'probation_starts_on' => $profile->getRawOriginal('probation_starts_on'),
+                'probation_ends_on' => $profile->getRawOriginal('probation_ends_on'),
+                'confirmation_date' => $profile->getRawOriginal('confirmation_date'),
                 'leave_policy_name' => $profile->leave_policy_name,
                 'annual_leave_days' => $profile->annual_leave_days,
                 'sick_leave_days' => $profile->sick_leave_days,
@@ -665,10 +742,10 @@ class EmployeeController extends Controller
                 'tax_identifier' => $profile->tax_identifier,
                 'emergency_contact_name' => $profile->emergency_contact_name,
                 'emergency_contact_phone' => $profile->emergency_contact_phone,
-                'termination_date' => $profile->termination_date?->toDateString(),
+                'termination_date' => $profile->getRawOriginal('termination_date'),
                 'termination_type' => $profile->termination_type,
                 'termination_reason' => $profile->termination_reason,
-                'last_rejoined_on' => $profile->last_rejoined_on?->toDateString(),
+                'last_rejoined_on' => $profile->getRawOriginal('last_rejoined_on'),
                 'notes' => $profile->notes,
             ] : $this->emptyProfile(),
             'master_data_tags' => $employee->masterDataItems
@@ -690,7 +767,7 @@ class EmployeeController extends Controller
                     'type' => $document->document_type,
                     'label' => $document->label,
                     'filename' => $document->original_filename,
-                    'expiry_date' => $document->expiry_date?->toDateString(),
+                    'expiry_date' => $document->getRawOriginal('expiry_date'),
                     'remarks' => $document->remarks,
                     'mime_type' => $document->mime_type,
                     'download_url' => route('hr.employees.documents.download', [$employee->id, $document->id]),

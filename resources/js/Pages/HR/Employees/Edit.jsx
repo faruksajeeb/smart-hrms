@@ -42,6 +42,8 @@ export default function Edit({ employee, options }) {
                     submitLabel="Save Employee"
                     isEdit={true}
                     documents={employee.documents ?? []}
+                    isEmploymentLocked={employee.is_employment_locked}
+                    employeeId={employee.id}
                 />
             </form>
         </HRLayout>

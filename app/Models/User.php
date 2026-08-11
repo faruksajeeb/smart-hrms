@@ -16,9 +16,11 @@ use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['name', 'email', 'password', 'employee_id', 'status', 'company_id', 'branch_id', 'cluster_id', 'division_id', 'department_id', 'section_id', 'unit_id', 'designation_id', 'employment_type_id', 'reporting_manager_id', 'joining_date'])]
-#[Hidden(['password', 'remember_token'])]
-class User extends Authenticatable
+    use App\Enums\EmploymentMovementType;
+
+    #[Fillable(['name', 'email', 'password', 'employee_id', 'status', 'company_id', 'branch_id', 'cluster_id', 'division_id', 'department_id', 'section_id', 'unit_id', 'designation_id', 'employment_type_id', 'reporting_manager_id', 'joining_date'])]
+    #[Hidden(['password', 'remember_token'])]
+    class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, HasRoles, Notifiable;
@@ -38,7 +40,16 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'joining_date' => 'date',
         ];
+    }
+
+    public function getJoiningDateAttribute($value)
+    {
+        if (is_null($value)) {
+            return null;
+        }
+        return \Carbon\Carbon::parse($value)->format('d-m-Y');
     }
 
     public function primaryRole(): ?string
@@ -231,5 +242,12 @@ class User extends Authenticatable
                 }
             }
         }
+    }
+
+    public function hasSubsequentEmploymentMovement(): bool
+    {
+        return $this->employmentHistories()
+            ->where('event_type', '!=', EmploymentMovementType::InitialAppointment->value)
+            ->exists();
     }
 }

@@ -21,6 +21,7 @@ export default function DatePickerInput({
     isClearable = true,
     minDate,
     maxDate,
+    isDisabled = false,
 }) {
     const selected = showTimeSelect ? parseDateTimeValue(value) : parseDateValue(value);
 
@@ -43,6 +44,7 @@ export default function DatePickerInput({
                     isClearable={isClearable}
                     minDate={minDate}
                     maxDate={maxDate}
+                    disabled={isDisabled}
                     className="block w-full rounded-2xl border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-slate-400 focus:ring-slate-400"
                     calendarClassName="smart-datepicker"
                     popperClassName="smart-datepicker-popper"

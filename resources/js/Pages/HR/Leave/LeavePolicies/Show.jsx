@@ -84,25 +84,69 @@ export default function Show({ policy }) {
                                         <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Entitlement</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Accrual</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Carry Forward</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Halfday Allowed</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Hourly Leave Allowed</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Attachment Required</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">allowed extensions</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">delegate required</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">notice period days</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">minimum service months</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">allow negative balance</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">gender restriction</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">marital status restriction</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">applicable after confirmation</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Status</th>
                                     </tr>
                                 </thead>
-                                <tbody className="bg-white divide-y divide-slate-200">
+                                <tbody className="bg-white divide-y divide-slate-200 text-sm">
                                     {policy.details.map((detail) => (
                                         <tr key={detail.id} className="hover:bg-slate-50">
-                                            <td className="px-6 py-4 text-sm text-slate-900">
+                                            <td className="px-1.5 py-1.5 text-sm text-slate-900 text-nowrap">
                                                 {detail.leave_type?.leave_name || '-'}
                                             </td>
-                                            <td className="px-6 py-4 text-sm text-slate-900">
+                                            <td className="px-1.5 py-1.5 text-sm text-slate-900">
                                                 {detail.annual_entitlement ?? '-'}
                                             </td>
-                                            <td className="px-6 py-4 text-sm text-slate-900">
+                                            <td className="px-1.5 py-1.5 text-sm text-slate-900">
                                                 {detail.accrual_method}
                                             </td>
-                                            <td className="px-6 py-4 text-sm text-slate-900">
+                                            <td className="px-1.5 py-1.5 text-sm text-slate-900">
                                                 {detail.carry_forward_allowed ? 'Yes' : 'No'}
                                             </td>
-                                            <td className="px-6 py-4 text-sm">
+                                            <td className="px-1.5 py-1.5 text-sm text-slate-900">
+                                                {detail.halfday_allowed ? 'Yes' : 'No'}
+                                            </td>
+                                            <td className="px-1.5 py-1.5 text-sm text-slate-900">
+                                                {detail.hourly_leave_allowed ? 'Yes' : 'No'}
+                                            </td>
+                                            <td className="px-1.5 py-1.5 text-sm text-slate-900">
+                                                {detail.attachment_required ? 'Yes' : 'No'}
+                                            </td>
+                                            <td className="px-1.5 py-1.5 text-sm text-slate-900">
+                                                {detail.allowed_extensions || '-'}
+                                            </td>
+                                            <td className="px-1.5 py-1.5 text-sm text-slate-900">
+                                                {detail.delegate_required ? 'Yes' : 'No'}
+                                            </td>
+                                            <td className="px-1.5 py-1.5 text-sm text-slate-900">
+                                                {detail.notice_period_days ?? '-'}
+                                            </td>
+                                            <td className="px-1.5 py-1.5 text-sm text-slate-900">
+                                                {detail.minimum_service_months ?? '-'}
+                                            </td>
+                                            <td className="px-1.5 py-1.5 text-sm text-slate-900">
+                                                {detail.allow_negative_balance ? 'Yes' : 'No'}
+                                            </td>
+                                            <td className="px-1.5 py-1.5 text-sm text-slate-900">
+                                                {detail.gender_restriction || '-'}
+                                            </td>
+                                            <td className="px-1.5 py-1.5 text-sm text-slate-900">
+                                                {detail.marital_status_restriction || '-'}
+                                            </td>
+                                            <td className="px-1.5 py-1.5 text-sm text-slate-900">
+                                                {detail.applicable_after_confirmation ? 'Yes' : 'No'}
+                                            </td>
+                                            <td className="px-1.5 py-1.5 text-sm">
                                                 <span
                                                     className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${
                                                         detail.status === 'active'

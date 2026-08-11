@@ -1,4 +1,4 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, useForm } from '@inertiajs/react';
 import HRLayout from '@/Layouts/HRLayout';
 
 export default function IndexComponent({ applications, employees = [], leaveTypes = [], statuses = [], filters = {} }) {
@@ -40,25 +40,20 @@ export default function IndexComponent({ applications, employees = [], leaveType
             subheading="Manage employee leave applications."
         >
             <Head title="Leave Applications" />
-            <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
+            <div className="space-y-2">
+                <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+                    <div className="flex items-center justify-between border-b border-slate-200 px-6 py-1">
+                        <h2 className="text-lg font-semibold text-slate-900">
+                            Filters
+                        </h2>
                         <Link
                             href={route('hr.leave.applications.create')}
-                            className="inline-flex items-center rounded-xl bg-sky-700 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-800"
+                            className="inline-flex items-center rounded-xl bg-sky-700 px-4 py-1 text-sm font-semibold text-white hover:bg-sky-800"
                         >
                             + Apply Leave
                         </Link>
                     </div>
-                </div>
-
-                <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-                    <div className="border-b border-slate-200 px-6 py-4">
-                        <h2 className="text-lg font-semibold text-slate-900">
-                            Filters
-                        </h2>
-                    </div>
-                    <div className="grid grid-cols-1 gap-6 p-6 lg:grid-cols-4">
+                    <div className="grid grid-cols-1 gap-6 p-2 lg:grid-cols-4">
                         <div>
                             <label className="block text-sm font-medium text-slate-700">
                                 Employee
@@ -120,25 +115,25 @@ export default function IndexComponent({ applications, employees = [], leaveType
                         <table className="min-w-full divide-y divide-slate-200">
                             <thead className="bg-slate-50">
                                 <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">
+                                    <th className="px-6 py-2 text-left text-xs font-medium text-slate-500 uppercase">
                                         Application No
                                     </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">
+                                    <th className="px-6 py-2 text-left text-xs font-medium text-slate-500 uppercase">
                                         Employee
                                     </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">
+                                    <th className="px-6 py-2 text-left text-xs font-medium text-slate-500 uppercase">
                                         Leave Type
                                     </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">
+                                    <th className="px-6 py-2 text-left text-xs font-medium text-slate-500 uppercase">
                                         Dates
                                     </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">
+                                    <th className="px-6 py-2 text-left text-xs font-medium text-slate-500 uppercase">
                                         Days
                                     </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">
+                                    <th className="px-6 py-2 text-left text-xs font-medium text-slate-500 uppercase">
                                         Status
                                     </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">
+                                    <th className="px-6 py-2 text-left text-xs font-medium text-slate-500 uppercase">
                                         Actions
                                     </th>
                                 </tr>
@@ -147,27 +142,27 @@ export default function IndexComponent({ applications, employees = [], leaveType
                                 {applications.data.length > 0 ? (
                                     applications.data.map((application) => (
                                         <tr key={application.id}>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">
+                                            <td className="px-6 py-2 whitespace-nowrap text-sm font-medium text-slate-900">
                                                 {application.application_no}
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                                            <td className="px-6 py-2 whitespace-nowrap text-sm text-slate-500">
                                                 {application.employee?.name}
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                                                {application.leave_type?.leave_name}
+                                            <td className="px-6 py-2 whitespace-nowrap text-sm text-slate-500">
+                                                {application.leaveType?.leave_name}
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                                            <td className="px-6 py-2 whitespace-nowrap text-sm text-slate-500">
                                                 {application.start_date} to {application.end_date}
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                                            <td className="px-6 py-2 whitespace-nowrap text-sm text-slate-500">
                                                 {application.total_days}
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
+                                            <td className="px-6 py-2 whitespace-nowrap">
                                                 <span className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${getStatusBadge(application.status)}`}>
                                                     {application.status}
                                                 </span>
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                            <td className="px-6 py-2 whitespace-nowrap text-sm font-medium">
                                                 <div className="flex items-center gap-2">
                                                     <Link
                                                         href={route('hr.leave.applications.show', application)}
@@ -175,7 +170,7 @@ export default function IndexComponent({ applications, employees = [], leaveType
                                                     >
                                                         View
                                                     </Link>
-                                                    {application.canEdit() && (
+                                                    {application.can_edit && (
                                                         <Link
                                                             href={route('hr.leave.applications.edit', application)}
                                                             className="text-indigo-700 hover:text-indigo-900"
@@ -183,7 +178,7 @@ export default function IndexComponent({ applications, employees = [], leaveType
                                                             Edit
                                                         </Link>
                                                     )}
-                                                    {application.canSubmit() && (
+                                                    {application.can_submit && (
                                                         <button
                                                             onClick={() => {
                                                                 if (confirm('Submit this leave application for approval?')) {
@@ -195,7 +190,7 @@ export default function IndexComponent({ applications, employees = [], leaveType
                                                             Submit
                                                         </button>
                                                     )}
-                                                    {application.canCancel() && (
+                                                    {application.can_cancel && (
                                                         <button
                                                             onClick={() => confirmDelete(application.id)}
                                                             className="text-red-700 hover:text-red-900"
@@ -203,7 +198,7 @@ export default function IndexComponent({ applications, employees = [], leaveType
                                                             Cancel
                                                         </button>
                                                     )}
-                                                    {application.canDelete() && (
+                                                    {application.can_delete && (
                                                         <button
                                                             onClick={() => confirmDelete(application.id)}
                                                             className="text-red-700 hover:text-red-900"

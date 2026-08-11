@@ -4,6 +4,7 @@ use App\Models\EmployeeLifecycleEvent;
 use App\Models\EmployeeProfile;
 use App\Models\EmployeeShiftAssignment;
 use App\Models\EmployeeWeeklyOffAssignment;
+use App\Models\EmployeeEmploymentHistory;
 use App\Models\MasterDataItem;
 use App\Models\User;
 use Database\Seeders\DummyMasterDataItemSeeder;
@@ -165,7 +166,7 @@ test('hr users can onboard employees with shift and weekly off', function () {
     $employee = User::where('email', 'employee-shift@example.com')->firstOrFail();
 
     expect($employee->hasRole(User::ROLE_EMPLOYEE))->toBeTrue();
-    expect($employee->employeeProfile->joining_date->toDateString())->toBe('2026-07-10');
+    expect($employee->employeeProfile->joining_date)->toBe('10-07-2026');
 
     $shiftAssignment = $employee->shiftAssignments()->where('is_current', true)->first();
     expect($shiftAssignment)->not->toBeNull();
@@ -202,4 +203,318 @@ test('hr can read a CV and receive onboarding suggestions', function () {
         ->assertJsonPath('data.name', 'CV Candidate')
         ->assertJsonPath('data.skills', 'PHP, Laravel')
         ->assertJsonPath('master_data.department_master_data_id.id', $department->id);
+});
+
+test('employment fields are editable before any subsequent movement', function () {
+    $this->seed(DummyMasterDataItemSeeder::class);
+
+    $hr = User::factory()->create(['status' => User::STATUS_ACTIVE]);
+    $hr->assignRole(User::ROLE_HR);
+
+    $newBranch = MasterDataItem::where('code', 'CTG')->firstOrFail();
+    $newDepartment = MasterDataItem::create([
+        'category' => MasterDataItem::CATEGORY_DEPARTMENT,
+        'code' => 'ENG',
+        'name' => 'Engineering',
+        'status' => MasterDataItem::STATUS_ACTIVE,
+        'sort_order' => 1,
+    ]);
+
+    $employee = User::factory()->create(['status' => User::STATUS_ACTIVE]);
+    $employee->employee_id = 'EMP-' . $employee->id;
+    $employee->save();
+    $employee->refresh();
+
+    EmployeeEmploymentHistory::create([
+        'user_id' => $employee->id,
+        'event_type' => \App\Enums\EmploymentMovementType::InitialAppointment->value,
+        'company_id' => 1,
+        'branch_id' => 1,
+        'department_id' => 1,
+        'effective_from' => now()->toDateString(),
+        'effective_to' => null,
+        'reason' => 'Initial',
+        'created_by' => $hr->id,
+        'updated_by' => $hr->id,
+    ]);
+
+    $response = $this->actingAs($hr)->put(route('hr.employees.update', $employee), [
+        'name' => $employee->name,
+        'email' => $employee->email,
+        'employee_id' => $employee->employee_id,
+        'company_master_data_id' => $newBranch->parent_id,
+        'branch_master_data_id' => $newBranch->id,
+        'division_master_data_id' => '',
+        'department_master_data_id' => $newDepartment->id,
+        'designation_master_data_id' => '',
+        'employment_type_master_data_id' => '',
+        'joining_date' => now()->toDateString(),
+    ])->assertSessionHasNoErrors();
+
+    $employee->refresh();
+
+    expect($employee->branch_id)->toBe($newBranch->id);
+    expect($employee->department_id)->toBe($newDepartment->id);
+
+    $history = EmployeeEmploymentHistory::where('user_id', $employee->id)
+        ->where('event_type', \App\Enums\EmploymentMovementType::InitialAppointment->value)
+        ->first();
+
+    expect($history->branch_id)->toBe($newBranch->id);
+    expect($history->department_id)->toBe($newDepartment->id);
+});
+
+test('employment fields are locked after a transfer movement', function () {
+    $this->seed(DummyMasterDataItemSeeder::class);
+
+    $hr = User::factory()->create(['status' => User::STATUS_ACTIVE]);
+    $hr->assignRole(User::ROLE_HR);
+
+    $company = MasterDataItem::where('category', MasterDataItem::CATEGORY_COMPANY)->first();
+    $branch = MasterDataItem::where('category', MasterDataItem::CATEGORY_BRANCH)->first();
+    $department = MasterDataItem::where('category', MasterDataItem::CATEGORY_DEPARTMENT)->first();
+
+    $employee = User::factory()->create([
+        'status' => User::STATUS_ACTIVE,
+        'company_id' => $company->id,
+        'branch_id' => $branch->id,
+        'department_id' => $department->id,
+    ]);
+    $employee->employee_id = 'EMP-' . $employee->id;
+    $employee->save();
+    $employee->refresh();
+
+    EmployeeEmploymentHistory::create([
+        'user_id' => $employee->id,
+        'event_type' => \App\Enums\EmploymentMovementType::InitialAppointment->value,
+        'company_id' => $company->id,
+        'branch_id' => $branch->id,
+        'department_id' => $department->id,
+        'effective_from' => now()->toDateString(),
+        'effective_to' => null,
+        'reason' => 'Initial',
+        'created_by' => $hr->id,
+        'updated_by' => $hr->id,
+    ]);
+
+    $newCompany = MasterDataItem::create([
+        'category' => MasterDataItem::CATEGORY_COMPANY,
+        'code' => 'NEWCO',
+        'name' => 'New Company',
+        'status' => MasterDataItem::STATUS_ACTIVE,
+        'sort_order' => 10,
+    ]);
+
+    $this->actingAs($hr)->post(route('hr.employment-movements.store'), [
+        'employee_id' => $employee->id,
+        'event_type' => \App\Enums\EmploymentMovementType::Transfer->value,
+        'company_id' => $newCompany->id,
+        'branch_id' => $branch->id,
+        'department_id' => $department->id,
+        'effective_from' => now()->addDay()->toDateString(),
+        'reason' => 'Transfer',
+    ])->assertRedirect();
+
+    $anotherCompany = MasterDataItem::create([
+        'category' => MasterDataItem::CATEGORY_COMPANY,
+        'code' => 'ANOTHER',
+        'name' => 'Another Company',
+        'status' => MasterDataItem::STATUS_ACTIVE,
+        'sort_order' => 11,
+    ]);
+
+    $this->actingAs($hr)->put(route('hr.employees.update', $employee), [
+        'name' => $employee->name,
+        'email' => $employee->email,
+        'employee_id' => $employee->employee_id,
+        'company_master_data_id' => $anotherCompany->id,
+        'branch_master_data_id' => $branch->id,
+        'division_master_data_id' => '',
+        'department_master_data_id' => $department->id,
+        'designation_master_data_id' => '',
+        'employment_type_master_data_id' => '',
+        'joining_date' => now()->toDateString(),
+    ])->assertSessionHasErrors('employment_fields');
+
+    $employee->refresh();
+
+    expect($employee->company_id)->toBe($newCompany->id);
+});
+
+test('employment fields are locked after organization change movement', function () {
+    $this->seed(DummyMasterDataItemSeeder::class);
+
+    $hr = User::factory()->create(['status' => User::STATUS_ACTIVE]);
+    $hr->assignRole(User::ROLE_HR);
+
+    $company = MasterDataItem::where('category', MasterDataItem::CATEGORY_COMPANY)->first();
+    $branch = MasterDataItem::where('category', MasterDataItem::CATEGORY_BRANCH)->first();
+    $department = MasterDataItem::where('category', MasterDataItem::CATEGORY_DEPARTMENT)->first();
+
+    $employee = User::factory()->create([
+        'status' => User::STATUS_ACTIVE,
+        'company_id' => $company->id,
+        'branch_id' => $branch->id,
+        'department_id' => $department->id,
+    ]);
+    $employee->employee_id = 'EMP-' . $employee->id;
+    $employee->save();
+    $employee->refresh();
+
+    EmployeeEmploymentHistory::create([
+        'user_id' => $employee->id,
+        'event_type' => \App\Enums\EmploymentMovementType::InitialAppointment->value,
+        'company_id' => $company->id,
+        'branch_id' => $branch->id,
+        'department_id' => $department->id,
+        'effective_from' => now()->toDateString(),
+        'effective_to' => null,
+        'reason' => 'Initial',
+        'created_by' => $hr->id,
+        'updated_by' => $hr->id,
+    ]);
+
+    $this->actingAs($hr)->post(route('hr.employment-movements.store'), [
+        'employee_id' => $employee->id,
+        'event_type' => \App\Enums\EmploymentMovementType::OrganizationChange->value,
+        'company_id' => $company->id,
+        'branch_id' => $branch->id,
+        'department_id' => $department->id,
+        'effective_from' => now()->addDay()->toDateString(),
+        'reason' => 'Org change',
+    ])->assertRedirect();
+
+    $newDepartment = MasterDataItem::create([
+        'category' => MasterDataItem::CATEGORY_DEPARTMENT,
+        'code' => 'NEWDEPT',
+        'name' => 'New Department',
+        'status' => MasterDataItem::STATUS_ACTIVE,
+        'sort_order' => 5,
+    ]);
+
+    $this->actingAs($hr)->put(route('hr.employees.update', $employee), [
+        'name' => $employee->name,
+        'email' => $employee->email,
+        'employee_id' => $employee->employee_id,
+        'company_master_data_id' => $company->id,
+        'branch_master_data_id' => $branch->id,
+        'division_master_data_id' => '',
+        'department_master_data_id' => $newDepartment->id,
+        'designation_master_data_id' => '',
+        'employment_type_master_data_id' => '',
+        'joining_date' => now()->toDateString(),
+    ])->assertSessionHasErrors('employment_fields');
+
+    $employee->refresh();
+
+    expect($employee->department_id)->toBe($department->id);
+});
+
+test('personal information remains editable after employment movement', function () {
+    $this->seed(DummyMasterDataItemSeeder::class);
+
+    $hr = User::factory()->create(['status' => User::STATUS_ACTIVE]);
+    $hr->assignRole(User::ROLE_HR);
+
+    $company = MasterDataItem::where('category', MasterDataItem::CATEGORY_COMPANY)->first();
+    $branch = MasterDataItem::where('category', MasterDataItem::CATEGORY_BRANCH)->first();
+    $department = MasterDataItem::where('category', MasterDataItem::CATEGORY_DEPARTMENT)->first();
+
+    $employee = User::factory()->create([
+        'status' => User::STATUS_ACTIVE,
+        'company_id' => $company->id,
+        'branch_id' => $branch->id,
+        'department_id' => $department->id,
+    ]);
+    $employee->employee_id = 'EMP-' . $employee->id;
+    $employee->save();
+    $employee->refresh();
+
+    EmployeeEmploymentHistory::create([
+        'user_id' => $employee->id,
+        'event_type' => \App\Enums\EmploymentMovementType::InitialAppointment->value,
+        'company_id' => $company->id,
+        'branch_id' => $branch->id,
+        'department_id' => $department->id,
+        'effective_from' => now()->toDateString(),
+        'effective_to' => null,
+        'reason' => 'Initial',
+        'created_by' => $hr->id,
+        'updated_by' => $hr->id,
+    ]);
+
+    $this->actingAs($hr)->post(route('hr.employment-movements.store'), [
+        'employee_id' => $employee->id,
+        'event_type' => \App\Enums\EmploymentMovementType::Transfer->value,
+        'company_id' => $company->id,
+        'branch_id' => $branch->id,
+        'department_id' => $department->id,
+        'effective_from' => now()->addDay()->toDateString(),
+        'reason' => 'Transfer',
+    ])->assertRedirect();
+
+    $this->actingAs($hr)->put(route('hr.employees.update', $employee), [
+        'name' => 'Updated Name',
+        'email' => $employee->email,
+        'employee_id' => $employee->employee_id,
+        'phone' => '01700000001',
+        'nationality' => 'Bangladeshi',
+    ])->assertSessionHasNoErrors();
+
+    $employee->refresh();
+
+    expect($employee->name)->toBe('Updated Name');
+    expect($employee->employeeProfile->phone)->toBe('01700000001');
+    expect($employee->employeeProfile->nationality)->toBe('Bangladeshi');
+});
+
+test('hr panel employee edit page passes employment lock flag', function () {
+    $this->seed(DummyMasterDataItemSeeder::class);
+
+    $hr = User::factory()->create(['status' => User::STATUS_ACTIVE]);
+    $hr->assignRole(User::ROLE_HR);
+
+    $company = MasterDataItem::where('category', MasterDataItem::CATEGORY_COMPANY)->first();
+    $branch = MasterDataItem::where('category', MasterDataItem::CATEGORY_BRANCH)->first();
+    $department = MasterDataItem::where('category', MasterDataItem::CATEGORY_DEPARTMENT)->first();
+
+    $employee = User::factory()->create([
+        'status' => User::STATUS_ACTIVE,
+        'company_id' => $company->id,
+        'branch_id' => $branch->id,
+        'department_id' => $department->id,
+    ]);
+    $employee->employee_id = 'EMP-' . $employee->id;
+    $employee->save();
+    $employee->refresh();
+
+    EmployeeEmploymentHistory::create([
+        'user_id' => $employee->id,
+        'event_type' => \App\Enums\EmploymentMovementType::InitialAppointment->value,
+        'company_id' => $company->id,
+        'branch_id' => $branch->id,
+        'department_id' => $department->id,
+        'effective_from' => now()->toDateString(),
+        'effective_to' => null,
+        'reason' => 'Initial',
+        'created_by' => $hr->id,
+        'updated_by' => $hr->id,
+    ]);
+
+    $this->actingAs($hr)->post(route('hr.employment-movements.store'), [
+        'employee_id' => $employee->id,
+        'event_type' => \App\Enums\EmploymentMovementType::Transfer->value,
+        'company_id' => $company->id,
+        'branch_id' => $branch->id,
+        'department_id' => $department->id,
+        'effective_from' => now()->addDay()->toDateString(),
+        'reason' => 'Transfer',
+    ])->assertRedirect();
+
+    $this->actingAs($hr)->get(route('hr.employees.edit', $employee))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('employee.is_employment_locked', true)
+            ->has('employee.profile')
+        );
 });

@@ -41,7 +41,7 @@ export default function ShowComponent({ application }) {
                                 >
                                     Back
                                 </Link>
-                                {application.canEdit() && (
+                                {application.can_edit && (
                                     <Link
                                         href={route('hr.leave.applications.edit', application)}
                                         className="inline-flex items-center rounded-xl bg-sky-700 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-800"
@@ -49,7 +49,7 @@ export default function ShowComponent({ application }) {
                                         Edit
                                     </Link>
                                 )}
-                                {application.canSubmit() && (
+                                {application.can_submit && (
                                     <Link
                                         href={route('hr.leave.applications.submit', application)}
                                         className="inline-flex items-center rounded-xl bg-green-700 px-4 py-2 text-sm font-semibold text-white hover:bg-green-800"
@@ -86,7 +86,15 @@ export default function ShowComponent({ application }) {
 
                         <div>
                             <h4 className="text-sm font-medium text-slate-500">Leave Policy</h4>
-                            <p className="mt-1 font-semibold text-slate-900">{application.leave_policy?.policy_name}</p>
+                            <p className="mt-1 font-semibold text-slate-900">
+                                {application.leave_policy?.policy_name ? (
+                                    <Link href={route('hr.leave.policies.show', { leave_policy: application.leave_policy.id })} className="text-sky-700 hover:text-sky-900 italic underline">
+                                        {application.leave_policy.policy_name}
+                                    </Link>
+                                ) : (
+                                    <span>{application.leave_policy?.policy_name || '-'}</span>
+                                )}
+                            </p>
                         </div>
 
                         <div>
@@ -193,7 +201,7 @@ export default function ShowComponent({ application }) {
                                 {application.attachments.map((attachment) => (
                                     <li key={attachment.id} className="flex items-center justify-between">
                                         <div className="flex items-center gap-3">
-                                            <a href={route('hr.leave.attachments.download', attachment.id)} className="text-sky-700 hover:text-sky-900">
+                                            <a href={route('hr.leave.applications.attachments.download', [application.id, attachment.id])} className="text-sky-700 hover:text-sky-900">
                                                 {attachment.original_file_name || attachment.file_name}
                                             </a>
                                             <span className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${

@@ -179,12 +179,20 @@ class LeaveApplicationService
             throw new \RuntimeException('Only draft applications can be submitted.');
         }
 
+        $assignment = $this->validationService->resolvePolicy($application->employee, \Carbon\Carbon::parse($application->getRawOriginal('start_date')));
+        if (!$assignment) {
+            throw new \RuntimeException('Leave policy not found. Please contact HR to assign a leave policy.');
+        }
+
+        $startDate = \Carbon\Carbon::parse($application->getRawOriginal('start_date'));
+        $endDate = \Carbon\Carbon::parse($application->getRawOriginal('end_date'));
+
         $errors = $this->validationService->validate(
             $application->employee,
             $application->leaveType,
             $application->leavePolicy,
-            $application->start_date,
-            $application->end_date,
+            $startDate,
+            $endDate,
             $application
         );
 
@@ -347,7 +355,7 @@ class LeaveApplicationService
 
     private function createLedgerEntries(LeaveApplication $application, int $userId): void
     {
-        $balanceAfter = $this->balanceService->getBalance($application->employee, $application->leaveType, $application->start_date->format('Y-m-d'));
+        $balanceAfter = $this->balanceService->getBalance($application->employee, $application->leaveType, \Carbon\Carbon::parse($application->getRawOriginal('start_date'))->format('Y-m-d'));
         $debitDays = $application->requested_days;
 
         $this->balanceService->createLedgerEntry([
@@ -357,8 +365,8 @@ class LeaveApplicationService
             'reference_type' => LeaveApplication::class,
             'reference_id' => $application->id,
             'transaction_reference' => $application->application_no,
-            'transaction_date' => $application->start_date->format('Y-m-d'),
-            'effective_date' => $application->start_date->format('Y-m-d'),
+            'transaction_date' => \Carbon\Carbon::parse($application->getRawOriginal('start_date'))->format('Y-m-d'),
+            'effective_date' => \Carbon\Carbon::parse($application->getRawOriginal('start_date'))->format('Y-m-d'),
             'days' => -$debitDays,
             'credit_days' => 0,
             'debit_days' => $debitDays,
@@ -373,7 +381,7 @@ class LeaveApplicationService
 
     private function reverseLedgerEntries(LeaveApplication $application, int $userId): void
     {
-        $balanceAfter = $this->balanceService->getBalance($application->employee, $application->leaveType, $application->start_date->format('Y-m-d'));
+        $balanceAfter = $this->balanceService->getBalance($application->employee, $application->leaveType, \Carbon\Carbon::parse($application->getRawOriginal('start_date'))->format('Y-m-d'));
         $creditDays = $application->requested_days;
 
         $this->balanceService->createLedgerEntry([

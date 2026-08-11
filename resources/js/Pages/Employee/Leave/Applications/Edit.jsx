@@ -40,7 +40,7 @@ export default function EditComponent({ application, leaveTypes = [], allLeaveTy
         formData.append('file', file);
         formData.append('_token', document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '');
 
-        const response = await fetch(route('employee.leave.applications.attachments.store', application.id), {
+        const response = await fetch(route('employee.employee.leave.applications.attachments.store', application.id), {
             method: 'POST',
             body: formData,
             headers: {
@@ -61,7 +61,7 @@ export default function EditComponent({ application, leaveTypes = [], allLeaveTy
         formData.append('_method', 'DELETE');
         formData.append('_token', document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '');
 
-        fetch(route('employee.leave.applications.attachments.destroy', attachmentId), {
+        fetch(route('employee.employee.leave.applications.attachments.destroy', attachmentId), {
             method: 'POST',
             body: formData,
             headers: {

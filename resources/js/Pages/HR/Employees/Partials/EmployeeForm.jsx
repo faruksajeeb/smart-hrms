@@ -4,6 +4,7 @@ import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
 import SearchSelect from '@/Components/SearchSelect';
 import TextInput from '@/Components/TextInput';
+import { Link } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 
 const IMAGE_EXTENSION = /\.(jpe?g|png|gif|webp|bmp)$/i;
@@ -68,6 +69,8 @@ export default function EmployeeForm({
     submitLabel,
     isEdit = false,
     documents = [],
+    isEmploymentLocked = false,
+    employeeId = null,
 }) {
     const masterData = options.masterData ?? {};
     const existingDocuments = Object.fromEntries(
@@ -271,19 +274,52 @@ export default function EmployeeForm({
                     </span>
                 </div>
 
+                {isEmploymentLocked && (
+                    <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                        <div className="flex items-start gap-3">
+                            <svg className="mt-0.5 h-5 w-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                            </svg>
+                            <div>
+                                <p className="text-sm font-medium text-amber-800">
+                                    Employment information is managed through Employment Movement because this employee has an employment movement history.
+                                </p>
+                                <div className="mt-3 flex flex-wrap gap-3">
+                                    {employeeId && (
+                                        <>
+                                            <Link
+                                                href={route('hr.employment-movements.history', employeeId)}
+                                                className="inline-flex items-center rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-xs font-semibold text-amber-800 hover:bg-amber-100"
+                                            >
+                                                View Employment History
+                                            </Link>
+                                            <Link
+                                                href={route('hr.employment-movements.create', { employee_id: employeeId })}
+                                                className="inline-flex items-center rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-700"
+                                            >
+                                                Create Employment Movement
+                                            </Link>
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 <div className="mt-8 grid gap-5 md:grid-cols-2">
                     <TextField id="name" label="Full Name" value={data.name} onChange={(value) => setData('name', value)} error={errors.name} />
                     <TextField id="email" label="Work Email" type="email" value={data.email} onChange={(value) => setData('email', value)} error={errors.email} />
                     <TextField id="employee_id" label="Employee ID" value={data.employee_id} onChange={(value) => setData('employee_id', value)} error={errors.employee_id} />
                     <SearchSelect id="employment_status" label="Employment Status" value={data.employment_status} options={options.employmentStatuses} onChange={(value) => setData('employment_status', value)} error={errors.employment_status} placeholder="Search employment status..." isClearable={false} />
-                    <SearchSelect id="company_master_data_id" label="Company" value={data.company_master_data_id} options={masterData.company_master_data_id} onChange={(value) => setData('company_master_data_id', value)} error={errors.company_master_data_id} placeholder="Search company..." />
-                    <SearchSelect id="branch_master_data_id" label="Branch / Work Location" value={data.branch_master_data_id} options={masterData.branch_master_data_id} onChange={(value) => setData('branch_master_data_id', value)} error={errors.branch_master_data_id} placeholder="Search branch..." />
-                    <SearchSelect id="division_master_data_id" label="Division" value={data.division_master_data_id} options={masterData.division_master_data_id} onChange={(value) => setData('division_master_data_id', value)} error={errors.division_master_data_id} placeholder="Search division..." />
-                    <SearchSelect id="department_master_data_id" label="Department" value={data.department_master_data_id} options={masterData.department_master_data_id} onChange={(value) => setData('department_master_data_id', value)} error={errors.department_master_data_id} placeholder="Search department..." />
-                    <SearchSelect id="designation_master_data_id" label="Designation" value={data.designation_master_data_id} options={masterData.designation_master_data_id} onChange={(value) => setData('designation_master_data_id', value)} error={errors.designation_master_data_id} placeholder="Search designation..." />
-                    <SearchSelect id="employment_type_master_data_id" label="Employment Type" value={data.employment_type_master_data_id} options={masterData.employment_type_master_data_id} onChange={(value) => setData('employment_type_master_data_id', value)} error={errors.employment_type_master_data_id} placeholder="Search employment type..." />
+                    <SearchSelect id="company_master_data_id" label="Company" value={data.company_master_data_id} options={masterData.company_master_data_id} onChange={(value) => setData('company_master_data_id', value)} error={errors.company_master_data_id} placeholder="Search company..." isDisabled={isEmploymentLocked} />
+                    <SearchSelect id="branch_master_data_id" label="Branch / Work Location" value={data.branch_master_data_id} options={masterData.branch_master_data_id} onChange={(value) => setData('branch_master_data_id', value)} error={errors.branch_master_data_id} placeholder="Search branch..." isDisabled={isEmploymentLocked} />
+                    <SearchSelect id="division_master_data_id" label="Division" value={data.division_master_data_id} options={masterData.division_master_data_id} onChange={(value) => setData('division_master_data_id', value)} error={errors.division_master_data_id} placeholder="Search division..." isDisabled={isEmploymentLocked} />
+                    <SearchSelect id="department_master_data_id" label="Department" value={data.department_master_data_id} options={masterData.department_master_data_id} onChange={(value) => setData('department_master_data_id', value)} error={errors.department_master_data_id} placeholder="Search department..." isDisabled={isEmploymentLocked} />
+                    <SearchSelect id="designation_master_data_id" label="Designation" value={data.designation_master_data_id} options={masterData.designation_master_data_id} onChange={(value) => setData('designation_master_data_id', value)} error={errors.designation_master_data_id} placeholder="Search designation..." isDisabled={isEmploymentLocked} />
+                    <SearchSelect id="employment_type_master_data_id" label="Employment Type" value={data.employment_type_master_data_id} options={masterData.employment_type_master_data_id} onChange={(value) => setData('employment_type_master_data_id', value)} error={errors.employment_type_master_data_id} placeholder="Search employment type..." isDisabled={isEmploymentLocked} />
                     <SearchSelect id="job_grade_master_data_id" label="Job Grade" value={data.job_grade_master_data_id} options={masterData.job_grade_master_data_id} onChange={(value) => setData('job_grade_master_data_id', value)} error={errors.job_grade_master_data_id} placeholder="Search job grade..." />
-                    <DatePickerInput id="joining_date" label="Joining Date" value={data.joining_date} onChange={(value) => setData('joining_date', value)} error={errors.joining_date} />
+                    <DatePickerInput id="joining_date" label="Joining Date" value={data.joining_date} onChange={(value) => setData('joining_date', value)} error={errors.joining_date} isDisabled={isEmploymentLocked} />
                     <TextField id="emergency_contact_name" label="Emergency Contact Name" value={data.emergency_contact_name} onChange={(value) => setData('emergency_contact_name', value)} error={errors.emergency_contact_name} />
                     <TextField id="emergency_contact_phone" label="Emergency Contact Phone" value={data.emergency_contact_phone} onChange={(value) => setData('emergency_contact_phone', value)} error={errors.emergency_contact_phone} />
                     <div className="grid gap-5 sm:grid-cols-2 md:col-span-2">

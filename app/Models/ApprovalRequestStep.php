@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use App\Enums\ApprovalStatus;
 
 #[Fillable([
     'approval_request_id',
@@ -47,5 +48,13 @@ class ApprovalRequestStep extends Model
     public function delegatedTo(): BelongsTo
     {
         return $this->belongsTo(User::class, 'delegated_to');
+    }
+
+    public function getApprovedAtAttribute($value)
+    {
+        if (is_null($value)) {
+            return null;
+        }
+        return \Carbon\Carbon::parse($value)->format('d-m-Y H:i');
     }
 }

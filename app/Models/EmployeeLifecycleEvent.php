@@ -57,4 +57,12 @@ class EmployeeLifecycleEvent extends Model
     {
         return $this->belongsTo(User::class, 'created_by');
     }
+
+    public function getEffectiveOnAttribute($value)
+    {
+        if (is_null($value)) {
+            return null;
+        }
+        return \Carbon\Carbon::parse($value)->format('d-m-Y');
+    }
 }

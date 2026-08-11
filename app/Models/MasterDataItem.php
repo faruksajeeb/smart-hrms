@@ -122,7 +122,7 @@ class MasterDataItem extends Model
             self::CATEGORY_CITY => 'City',
             self::CATEGORY_RELATIVE => 'Relative',
             self::CATEGORY_JOB_GRADE => 'Job Grade',
-            self::CATEGORY_LEAVE_TYPE => 'Leave Type',
+            // self::CATEGORY_LEAVE_TYPE => 'Leave Type',
         ];
     }
 

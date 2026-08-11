@@ -216,7 +216,7 @@ export default function LeaveAttachmentUpload({
                                     }`}>
                                         {attachment.status}
                                     </span>
-                                    <a href={route('employee.leave.applications.attachments.download', [application.id, attachment.id])} className="text-sm font-medium text-sky-700 hover:text-sky-900">
+                                    <a href={route('employee.employee.leave.applications.attachments.download', [application.id, attachment.id])} className="text-sm font-medium text-sky-700 hover:text-sky-900">
                                         {attachment.original_file_name || attachment.file_name}
                                     </a>
                                     <span className="text-xs text-slate-500">

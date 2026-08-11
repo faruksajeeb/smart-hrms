@@ -97,7 +97,7 @@ const navigation = [
     {
         label: 'Leave Master',
         active: 'hr.leave.*',
-        permission: 'manage leave types',
+        permission: 'leave.manage-applications',
         roles: ['hr'],
         children: [
             {
@@ -149,13 +149,7 @@ const navigation = [
         route: 'hr.payroll',
         permission: 'manage payroll',
         roles: ['hr'],
-    },
-    {
-        label: 'Leave Requests',
-        route: 'hr.leave',
-        permission: 'manage leave requests',
-        roles: ['hr'],
-    },
+    }
 ];
 
 export default function HRLayout({ children, heading, subheading }) {

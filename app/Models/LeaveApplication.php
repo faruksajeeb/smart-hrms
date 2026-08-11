@@ -134,4 +134,23 @@ class LeaveApplication extends Model
     {
         return $this->status === LeaveApplicationStatus::Draft;
     }
+
+    #accessors
+    #start_date
+    public function getStartDateAttribute($value)
+    {
+        if (is_null($value)) {
+            return null;
+        }
+        return \Carbon\Carbon::parse($value)->format('d-m-Y');
+    }
+
+    #end_date
+    public function getEndDateAttribute($value)
+    {
+        if (is_null($value)) {
+            return null;
+        }
+        return \Carbon\Carbon::parse($value)->format('d-m-Y');
+    }
 }

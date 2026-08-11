@@ -57,4 +57,20 @@ class ApprovalRequest extends Model
             ->where('level_no', $this->current_level)
             ->where('status', ApprovalStatus::Pending);
     }
+
+    public function getSubmittedAtAttribute($value)
+    {
+        if (is_null($value)) {
+            return null;
+        }
+        return \Carbon\Carbon::parse($value)->format('d-m-Y H:i');
+    }
+
+    public function getCompletedAtAttribute($value)
+    {
+        if (is_null($value)) {
+            return null;
+        }
+        return \Carbon\Carbon::parse($value)->format('d-m-Y H:i');
+    }
 }

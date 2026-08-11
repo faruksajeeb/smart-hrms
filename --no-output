@@ -1,44 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <testsuites>
-  <testsuite name="Tests\Feature\HR\LeaveApplicationTest" file="tests\Feature\HR\LeaveApplicationTest.php" tests="1" assertions="0" errors="1" failures="0" skipped="0" time="0.000000">
-    <testcase name="it allows employee to submit leave application" file="tests\Feature\HR\LeaveApplicationTest.php::it allows employee to submit leave application" class="Tests\Feature\HR\LeaveApplicationTest" classname="Tests.Feature.HR.LeaveApplicationTest" assertions="0" time="0.000000">
-      <error type="Spatie\Permission\Exceptions\PermissionDoesNotExist">it allows employee to submit leave applicationSpatie\Permission\Exceptions\PermissionDoesNotExist: There is no permission named `leave.view-own-applications` for guard `web`.&#13;
-at vendor\spatie\laravel-permission\src\Exceptions\PermissionDoesNotExist.php:11
-at vendor\spatie\laravel-permission\src\Models\Permission.php:103
-at vendor\spatie\laravel-permission\src\Traits\HasPermissions.php:498
-at vendor\spatie\laravel-permission\src\Traits\HasPermissions.php:367
-at vendor\laravel\framework\src\Illuminate\Collections\Traits\EnumeratesValues.php:854
-at vendor\spatie\laravel-permission\src\Traits\HasPermissions.php:362
-at vendor\spatie\laravel-permission\src\Traits\HasPermissions.php:445
-at database\seeders\RolePermissionSeeder.php:35
-at vendor\laravel\framework\src\Illuminate\Container\BoundMethod.php:36
-at vendor\laravel\framework\src\Illuminate\Container\Util.php:43
-at vendor\laravel\framework\src\Illuminate\Container\BoundMethod.php:96
-at vendor\laravel\framework\src\Illuminate\Container\BoundMethod.php:35
-at vendor\laravel\framework\src\Illuminate\Container\Container.php:799
-at vendor\laravel\framework\src\Illuminate\Database\Seeder.php:184
-at vendor\laravel\framework\src\Illuminate\Database\Seeder.php:191
-at vendor\laravel\framework\src\Illuminate\Database\Console\Seeds\SeedCommand.php:71
-at vendor\laravel\framework\src\Illuminate\Database\Eloquent\Concerns\GuardsAttributes.php:181
-at vendor\laravel\framework\src\Illuminate\Database\Console\Seeds\SeedCommand.php:70
-at vendor\laravel\framework\src\Illuminate\Container\BoundMethod.php:36
-at vendor\laravel\framework\src\Illuminate\Container\Util.php:43
-at vendor\laravel\framework\src\Illuminate\Container\BoundMethod.php:96
-at vendor\laravel\framework\src\Illuminate\Container\BoundMethod.php:35
-at vendor\laravel\framework\src\Illuminate\Container\Container.php:799
-at vendor\laravel\framework\src\Illuminate\Console\Command.php:280
-at vendor\symfony\console\Command\Command.php:291
-at vendor\laravel\framework\src\Illuminate\Console\Command.php:249
-at vendor\symfony\console\Application.php:1084
-at vendor\symfony\console\Application.php:356
-at vendor\symfony\console\Application.php:195
-at vendor\laravel\framework\src\Illuminate\Console\Application.php:165
-at vendor\laravel\framework\src\Illuminate\Foundation\Console\Kernel.php:447
-at vendor\laravel\framework\src\Illuminate\Testing\PendingCommand.php:451
-at vendor\laravel\framework\src\Illuminate\Testing\PendingCommand.php:675
-at vendor\laravel\framework\src\Illuminate\Foundation\Testing\Concerns\InteractsWithConsole.php:87
-at vendor\laravel\framework\src\Illuminate\Foundation\Testing\Concerns\InteractsWithDatabase.php:394
-at tests\Pest.php:22</error>
+  <testsuite name="Tests\Feature\Admin\ManagementTest" file="tests\Feature\Admin\ManagementTest.php" tests="1" assertions="2" errors="1" failures="0" skipped="0" time="0.934692">
+    <testcase name="admins can create custom permissions, roles, and users" file="tests\Feature\Admin\ManagementTest.php::admins can create custom permissions, roles, and users" class="Tests\Feature\Admin\ManagementTest" classname="Tests.Feature.Admin.ManagementTest" assertions="2" time="0.934692">
+      <error type="Error">admins can create custom permissions, roles, and usersError: Call to a member function all() on array&#13;
+at vendor\laravel\framework\src\Illuminate\Testing\TestResponseAssert.php:81
+at vendor\laravel\framework\src\Illuminate\Testing\TestResponseAssert.php:47
+at vendor\laravel\framework\src\Illuminate\Testing\TestResponse.php:433
+at vendor\laravel\framework\src\Illuminate\Testing\TestResponse.php:207
+at tests\Feature\Admin\ManagementTest.php:31</error>
     </testcase>
   </testsuite>
 </testsuites>

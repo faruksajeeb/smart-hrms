@@ -40,4 +40,12 @@ class ShiftSwapRequest extends Model
     {
         return $this->belongsTo(User::class, 'reviewed_by');
     }
+
+    public function getReviewedAtAttribute($value)
+    {
+        if (is_null($value)) {
+            return null;
+        }
+        return \Carbon\Carbon::parse($value)->format('d-m-Y H:i');
+    }
 }

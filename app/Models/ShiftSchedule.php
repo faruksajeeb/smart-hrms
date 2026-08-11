@@ -55,4 +55,12 @@ class ShiftSchedule extends Model
     {
         return $this->hasMany(Attendance::class);
     }
+
+    public function getWorkDateAttribute($value)
+    {
+        if (is_null($value)) {
+            return null;
+        }
+        return \Carbon\Carbon::parse($value)->format('d-m-Y');
+    }
 }

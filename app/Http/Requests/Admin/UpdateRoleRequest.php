@@ -6,6 +6,7 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Spatie\Permission\Models\Role;
+use App\Support\AccessControl;
 
 class UpdateRoleRequest extends FormRequest
 {
@@ -37,18 +38,23 @@ class UpdateRoleRequest extends FormRequest
         /** @var Role $role */
         $role = $this->route('role');
 
-        return [
-            'name' => [
-                'required',
-                'string',
-                'max:255',
-                Rule::unique('roles', 'name')->where('guard_name', 'web')->ignore($role->id),
-            ],
+        $rules = [
             'permissions' => ['nullable', 'array'],
             'permissions.*' => [
                 'string',
                 Rule::exists('permissions', 'name')->where('guard_name', 'web'),
             ],
         ];
+
+        if (! AccessControl::isProtectedRole($role->name)) {
+            $rules['name'] = [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('roles', 'name')->where('guard_name', 'web')->ignore($role->id),
+            ];
+        }
+
+        return $rules;
     }
 }

@@ -45,6 +45,28 @@ class LeaveApplicationController extends Controller
 
         $applications = $query->orderBy('created_at', 'desc')->paginate(15);
 
+        $applications->getCollection()->transform(function ($application) {
+            return [
+                'id' => $application->id,
+                'application_no' => $application->application_no,
+                'leave_type_id' => $application->leave_type_id,
+                'leavePolicy' => $application->leavePolicy,
+                'leaveType' => $application->leaveType,
+                'employee' => $application->employee,
+                'start_date' => $application->start_date,
+                'end_date' => $application->end_date,
+                'total_days' => $application->total_days,
+                'status' => $application->status,
+                'delegate_user_id' => $application->delegate_user_id,
+                'delegate' => $application->delegate,
+                'delegate_status' => $application->delegate_status,
+                'can_edit' => $application->canEdit(),
+                'can_submit' => $application->canSubmit(),
+                'can_delete' => $application->canDelete(),
+                'can_cancel' => $application->canCancel(),
+            ];
+        });
+
         $employees = User::where('status', User::STATUS_ACTIVE)
             ->orderBy('name')
             ->get(['id', 'name', 'employee_id']);
@@ -239,13 +261,55 @@ class LeaveApplicationController extends Controller
         $application->load(['employee', 'leaveType', 'leavePolicy', 'days', 'attachments.uploader', 'creator', 'updater']);
 
         if (request()->routeIs('employee.*')) {
+            $startDate = \Carbon\Carbon::parse($application->start_date ?? now());
+            $assignment = $this->service->resolvePolicy($application->employee, $startDate);
+
+            $policyDetails = [];
+            $activePolicy = $application->leavePolicy;
+
+            if ($activePolicy) {
+                $policyDetails = $activePolicy->details()
+                    ->where('status', 'active')
+                    ->with('leaveType')
+                    ->get();
+            }
+
             return Inertia::render('Employee/Leave/Applications/Show', [
                 'application' => $application,
+                'activePolicy' => $activePolicy,
+                'policyDetails' => $policyDetails,
             ]);
         }
 
         return Inertia::render('HR/Leave/LeaveApplications/Show', [
-            'application' => $application,
+            'application' => [
+                'id' => $application->id,
+                'application_no' => $application->application_no,
+                'employee' => $application->employee,
+                'leave_type' => $application->leaveType,
+                'leave_policy' => $application->leavePolicy,
+                'application_type' => $application->application_type,
+                'start_date' => $application->start_date,
+                'end_date' => $application->end_date,
+                'total_days' => $application->total_days,
+                'requested_days' => $application->requested_days,
+                'is_half_day' => $application->is_half_day,
+                'half_day_session' => $application->half_day_session,
+                'is_emergency' => $application->is_emergency,
+                'reason' => $application->reason,
+                'remarks' => $application->remarks,
+                'status' => $application->status,
+                'delegate' => $application->delegate,
+                'delegate_status' => $application->delegate_status,
+                'delegate_responded_at' => $application->delegate_responded_at,
+                'delegate_remarks' => $application->delegate_remarks,
+                'can_edit' => $application->canEdit(),
+                'can_submit' => $application->canSubmit(),
+                'can_delete' => $application->canDelete(),
+                'can_cancel' => $application->canCancel(),
+                'days' => $application->days,
+                'attachments' => $application->attachments,
+            ],
         ]);
     }
 
@@ -346,7 +410,7 @@ class LeaveApplicationController extends Controller
             $this->service->submit($application, auth()->id());
 
             if (request()->routeIs('employee.*')) {
-                return redirect()->route('employee.leave.applications.index')->with('success', 'Leave application submitted successfully.');
+                return redirect()->route('employee.leave.applications.index')->with('success', 'Your Leave application submitted successfully.');
             }
 
             return redirect()->route('hr.leave.applications.index')->with('success', 'Leave application submitted successfully.');

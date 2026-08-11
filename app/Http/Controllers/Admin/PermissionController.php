@@ -66,9 +66,17 @@ class PermissionController extends Controller
      */
     public function store(StorePermissionRequest $request): RedirectResponse
     {
+        $name = $request->string('name')->toString();
+        $groupName = $request->input('group_name');
+
+        if (empty($groupName)) {
+            $parts = explode('.', $name, 2);
+            $groupName = $parts[0] ?? 'General';
+        }
+
         $permission = Permission::create([
-            'name' => $request->string('name')->toString(),
-            'group_name' => $request->input('group_name'),
+            'name' => $name,
+            'group_name' => $groupName,
             'guard_name' => 'web',
         ]);
 

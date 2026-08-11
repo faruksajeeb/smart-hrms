@@ -27,4 +27,20 @@ class Attendance extends Model
     {
         return $this->belongsTo(ShiftSchedule::class, 'shift_schedule_id');
     }
+
+    public function getClockInAttribute($value)
+    {
+        if (is_null($value)) {
+            return null;
+        }
+        return \Carbon\Carbon::parse($value)->format('d-m-Y H:i');
+    }
+
+    public function getClockOutAttribute($value)
+    {
+        if (is_null($value)) {
+            return null;
+        }
+        return \Carbon\Carbon::parse($value)->format('d-m-Y H:i');
+    }
 }

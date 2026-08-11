@@ -28,7 +28,7 @@ test('admins can create custom permissions, roles, and users', function () {
 
     $this->actingAs($admin)->post(route('admin.permissions.store'), [
         'name' => 'export reports',
-    ])->assertRedirect(route('admin.permissions.index', absolute: false));
+    ])->assertRedirect(route('admin.permissions.index'));
 
     $this->assertDatabaseHas('permissions', [
         'name' => 'export reports',
@@ -37,7 +37,7 @@ test('admins can create custom permissions, roles, and users', function () {
     $this->actingAs($admin)->post(route('admin.roles.store'), [
         'name' => 'team lead',
         'permissions' => ['export reports'],
-    ])->assertRedirect(route('admin.roles.index', absolute: false));
+    ])->assertRedirect(route('admin.roles.index'));
 
     $this->assertDatabaseHas('roles', [
         'name' => 'team lead',

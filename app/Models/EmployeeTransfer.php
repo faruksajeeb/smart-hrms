@@ -144,14 +144,28 @@ class EmployeeTransfer extends Model
         return $this->belongsTo(MasterDataItem::class, 'to_unit_id');
     }
 
-    #setAccessors for effective_from and effective_to to format the date in Y-m-d format
+    #accessors for effective_from and effective_to to format the date in d-m-Y format
     public function getEffectiveFromAttribute($value)
     {
-        return $value ? date('Y-m-d', strtotime($value)) : null;
+        if (is_null($value)) {
+            return null;
+        }
+        return \Carbon\Carbon::parse($value)->format('d-m-Y');
     }
 
     public function getEffectiveToAttribute($value)
     {
-        return $value ? date('Y-m-d', strtotime($value)) : null;
+        if (is_null($value)) {
+            return null;
+        }
+        return \Carbon\Carbon::parse($value)->format('d-m-Y');
+    }
+
+    public function getApprovedAtAttribute($value)
+    {
+        if (is_null($value)) {
+            return null;
+        }
+        return \Carbon\Carbon::parse($value)->format('d-m-Y H:i');
     }
 }

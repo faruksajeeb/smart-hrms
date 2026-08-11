@@ -32,13 +32,15 @@ class LeaveValidationService
         }
 
         $user = $employee;
-       
+
         if ($user->employment_type_id) {
             $employmentType = \App\Models\MasterDataItem::find($user->employment_type_id);
 
             if ($employmentType) {
-                $assignment = LeavePolicyAssignment::where('employment_type', $employmentType->code)
-                    ->orWhere('employment_type', $employmentType->name)
+                $assignment = LeavePolicyAssignment::where(function ($query) use ($employmentType) {
+                    $query->where('employment_type', $employmentType->code)
+                        ->orWhere('employment_type', $employmentType->name);
+                })
                     ->where('effective_from', '<=', $date->format('Y-m-d'))
                     ->where(function ($query) use ($date) {
                         $query->whereNull('effective_to')->orWhere('effective_to', '>=', $date->format('Y-m-d'));
@@ -144,7 +146,7 @@ class LeaveValidationService
         }
 
         if ($user->company_id) {
-            
+
             $assignment = LeavePolicyAssignment::where('company_id', $user->company_id)
                 ->where('effective_from', '<=', $date->format('Y-m-d'))
                 ->where(function ($query) use ($date) {
@@ -176,13 +178,14 @@ class LeaveValidationService
         }
 
         $assignment = $this->getActivePolicyAssignment($employee, $startDate);
+
         if (!$assignment) {
             $errors[] = 'No active leave policy assignment found for the employee.';
         } elseif ($assignment->leave_policy_id !== $policy->id) {
             $errors[] = 'Selected leave policy is not assigned to the employee.';
         }
 
-        if ($startDate < \Carbon\Carbon::parse($employee->joining_date)) {
+        if ($startDate < \Carbon\Carbon::parse($employee->employeeProfile?->joining_date)) {
             $errors[] = 'Cannot apply for leave before joining date.';
         }
 
@@ -286,6 +289,7 @@ class LeaveValidationService
                 if ($delegate->company_id !== $employee->company_id) {
                     $errors[] = 'Delegate must belong to the same company.';
                 }
+                // dd($delegate->branch_id, $employee->branch_id);
                 if ($delegate->branch_id && $employee->branch_id && $delegate->branch_id !== $employee->branch_id) {
                     $errors[] = 'Delegate must belong to the same branch.';
                 }
@@ -307,17 +311,167 @@ class LeaveValidationService
             ->first();
     }
 
-    public function getActivePolicyAssignment(User $employee, \DateTimeInterface $date): ?LeavePolicyAssignment
-    {
-        return LeavePolicyAssignment::where('user_id', $employee->id)
-            ->where('effective_from', '<=', $date->format('Y-m-d'))
-            ->where(function ($query) use ($date) {
-                $query->whereNull('effective_to')
-                    ->orWhere('effective_to', '>=', $date->format('Y-m-d'));
-            })
-            ->where('status', 'active')
-            ->latest('effective_from')
-            ->first();
+    public function getActivePolicyAssignment(
+        User $employee,
+        \DateTimeInterface $date
+    ): ?LeavePolicyAssignment {
+        $dateOnly = $date->format('Y-m-d');
+
+        $baseQuery = function () use ($dateOnly) {
+            return LeavePolicyAssignment::query()
+                ->where('status', 'active')
+                ->where('effective_from', '<=', $dateOnly)
+                ->where(function ($query) use ($dateOnly) {
+                    $query->whereNull('effective_to')
+                        ->orWhere('effective_to', '>=', $dateOnly);
+                });
+        };
+
+        // 1. User-specific policy
+        if ($employee->id) {
+            $assignment = $baseQuery()
+                ->where('user_id', $employee->id)
+                ->latest('effective_from')
+                ->first();
+
+            if ($assignment) {
+                return $assignment;
+            }
+        }
+
+        // 2. Employment type
+        if ($employee->employment_type) {
+            $assignment = $baseQuery()
+                ->whereNull('user_id')
+                ->where('employment_type', $employee->employment_type)
+                ->latest('effective_from')
+                ->first();
+
+            if ($assignment) {
+                return $assignment;
+            }
+        }
+
+        // 3. Designation
+        if ($employee->designation_id) {
+            $assignment = $baseQuery()
+                ->whereNull('user_id')
+                ->whereNull('employment_type')
+                ->where('designation_id', $employee->designation_id)
+                ->latest('effective_from')
+                ->first();
+
+            if ($assignment) {
+                return $assignment;
+            }
+        }
+
+        // 4. Unit
+        if ($employee->unit_id) {
+            $assignment = $baseQuery()
+                ->whereNull('user_id')
+                ->whereNull('employment_type')
+                ->whereNull('designation_id')
+                ->where('unit_id', $employee->unit_id)
+                ->latest('effective_from')
+                ->first();
+
+            if ($assignment) {
+                return $assignment;
+            }
+        }
+
+        // 5. Section
+        if ($employee->section_id) {
+            $assignment = $baseQuery()
+                ->whereNull('user_id')
+                ->whereNull('employment_type')
+                ->whereNull('designation_id')
+                ->whereNull('unit_id')
+                ->where('section_id', $employee->section_id)
+                ->latest('effective_from')
+                ->first();
+
+            if ($assignment) {
+                return $assignment;
+            }
+        }
+
+        // 6. Department
+        if ($employee->department_id) {
+            $assignment = $baseQuery()
+                ->whereNull('user_id')
+                ->whereNull('employment_type')
+                ->whereNull('designation_id')
+                ->whereNull('unit_id')
+                ->whereNull('section_id')
+                ->where('department_id', $employee->department_id)
+                ->latest('effective_from')
+                ->first();
+
+            if ($assignment) {
+                return $assignment;
+            }
+        }
+
+        // 7. Division
+        if ($employee->division_id) {
+            $assignment = $baseQuery()
+                ->whereNull('user_id')
+                ->whereNull('employment_type')
+                ->whereNull('designation_id')
+                ->whereNull('unit_id')
+                ->whereNull('section_id')
+                ->whereNull('department_id')
+                ->where('division_id', $employee->division_id)
+                ->latest('effective_from')
+                ->first();
+
+            if ($assignment) {
+                return $assignment;
+            }
+        }
+
+        // 8. Branch
+        if ($employee->branch_id) {
+            $assignment = $baseQuery()
+                ->whereNull('user_id')
+                ->whereNull('employment_type')
+                ->whereNull('designation_id')
+                ->whereNull('unit_id')
+                ->whereNull('section_id')
+                ->whereNull('department_id')
+                ->whereNull('division_id')
+                ->where('branch_id', $employee->branch_id)
+                ->latest('effective_from')
+                ->first();
+
+            if ($assignment) {
+                return $assignment;
+            }
+        }
+
+        // 9. Company
+        if ($employee->company_id) {
+            $assignment = $baseQuery()
+                ->whereNull('user_id')
+                ->whereNull('employment_type')
+                ->whereNull('designation_id')
+                ->whereNull('unit_id')
+                ->whereNull('section_id')
+                ->whereNull('department_id')
+                ->whereNull('division_id')
+                ->whereNull('branch_id')
+                ->where('company_id', $employee->company_id)
+                ->latest('effective_from')
+                ->first();
+
+            if ($assignment) {
+                return $assignment;
+            }
+        }
+
+        return null;
     }
 
     private function isAttachmentRequired(LeavePolicy $policy, LeaveType $leaveType): bool

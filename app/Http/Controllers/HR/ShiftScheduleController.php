@@ -147,7 +147,7 @@ class ShiftScheduleController extends Controller
 
         return [
             'id' => $schedule->id,
-            'work_date' => $schedule->work_date?->format('Y-m-d'),
+            'work_date' => $schedule->getRawOriginal('work_date'),
             'start_time' => $time($schedule->start_time),
             'end_time' => $time($schedule->end_time),
             'status' => $schedule->status,

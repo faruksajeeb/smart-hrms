@@ -1,8 +1,10 @@
 import { Head, Link, useForm } from '@inertiajs/react';
+import { useState } from 'react';
 import EmployeeLayout from '@/Layouts/EmployeeLayout';
 
-export default function ShowComponent({ application }) {
+export default function ShowComponent({ application, activePolicy = null, policyDetails = [] }) {
     const { post, processing } = useForm();
+    const [showPolicyRules, setShowPolicyRules] = useState(false);
 
     const getStatusBadge = (status) => {
         const colors = {
@@ -97,7 +99,10 @@ export default function ShowComponent({ application }) {
 
                         <div>
                             <h4 className="text-sm font-medium text-slate-500">Leave Policy</h4>
-                            <p className="mt-1 font-semibold text-slate-900">{application.leave_policy?.policy_name}</p>
+                            <p className="mt-1 font-semibold text-slate-900" id="leave-policy-view">
+                                {application.leave_policy?.policy_name}
+                                
+                            </p>
                         </div>
 
                         <div>
@@ -186,6 +191,92 @@ export default function ShowComponent({ application }) {
                     </div>
                 </div>
 
+                {activePolicy && (
+                    <div  className="rounded-2xl border border-sky-200 bg-white shadow-sm">
+                        <div className="border-b border-sky-200 px-6 py-4">
+                            <h4 className="text-sm font-medium text-sky-900">Applicable Leave Policy For You</h4>
+                            <p className="mt-1 text-sm text-sky-700">{activePolicy.policy_name}</p>
+                            <p className="text-xs text-sky-600">
+                                {activePolicy.policy_code} | Effective: {activePolicy.effective_from} {activePolicy.effective_to ? `to ${activePolicy.effective_to}` : ""}
+                            </p>
+                        </div>
+
+                        {policyDetails.length > 0 && (
+                            <div className="p-5">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPolicyRules(!showPolicyRules)}
+                                    className="flex w-full items-center justify-between rounded-lg bg-sky-100 px-4 py-3 text-left text-sm font-semibold text-sky-900 hover:bg-sky-200"
+                                >
+                                    <span>Policy Rules ({policyDetails.length})</span>
+                                    <svg
+                                        className={`h-5 w-5 transform transition-transform ${showPolicyRules ? 'rotate-180' : ''}`}
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                    >
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                </button>
+
+                                {showPolicyRules && (
+                                    <div className="mt-3 overflow-x-auto rounded-xl border border-sky-100">
+                                        <table className="min-w-full divide-y divide-sky-100 text-xs">
+                                            <thead className="bg-sky-50">
+                                                <tr>
+                                                    <th className="px-3 py-2 text-left font-semibold text-sky-900">Leave Type</th>
+                                                    <th className="px-3 py-2 text-left font-semibold text-sky-900">Entitlement</th>
+                                                    <th className="px-3 py-2 text-left font-semibold text-sky-900">Accrual</th>
+                                                    <th className="px-3 py-2 text-left font-semibold text-sky-900">Min / Max</th>
+                                                    <th className="px-3 py-2 text-left font-semibold text-sky-900">Notice</th>
+                                                    <th className="px-3 py-2 text-left font-semibold text-sky-900">Gender</th>
+                                                    <th className="px-3 py-2 text-left font-semibold text-sky-900">Marital</th>
+                                                    <th className="px-3 py-2 text-left font-semibold text-sky-900">Flags</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-sky-100 bg-white/70">
+                                                {policyDetails.map((detail) => (
+                                                    <tr key={detail.id} className="hover:bg-sky-50/60">
+                                                        <td className="px-3 py-2 font-medium text-sky-900">{detail.leave_type?.leave_name || 'Unknown'}</td>
+                                                        <td className="px-3 py-2 text-sky-700">{detail.annual_entitlement}</td>
+                                                        <td className="px-3 py-2 text-sky-700">{detail.accrual_method}</td>
+                                                        <td className="px-3 py-2 text-sky-700">{detail.minimum_days_per_application} - {detail.maximum_days_per_application || '∞'}</td>
+                                                        <td className="px-3 py-2 text-sky-700">{detail.notice_period_days}</td>
+                                                        <td className="px-3 py-2 text-sky-700">{detail.gender_restriction}</td>
+                                                        <td className="px-3 py-2 text-sky-700">{detail.marital_status_restriction}</td>
+                                                        <td className="px-3 py-2 text-sky-700">
+                                                            <div className="flex flex-wrap gap-1">
+                                                                {detail.carry_forward_allowed && (
+                                                                    <span className="rounded bg-sky-100 px-1.5 py-0.5 text-[10px] font-medium text-sky-700">Carry Forward</span>
+                                                                )}
+                                                                {detail.encashment_allowed && (
+                                                                    <span className="rounded bg-sky-100 px-1.5 py-0.5 text-[10px] font-medium text-sky-700">Encashment</span>
+                                                                )}
+                                                                {detail.half_day_allowed && (
+                                                                    <span className="rounded bg-sky-100 px-1.5 py-0.5 text-[10px] font-medium text-sky-700">Half Day</span>
+                                                                )}
+                                                                {detail.attachment_required && (
+                                                                    <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">Attachment</span>
+                                                                )}
+                                                                {detail.medical_certificate_required && (
+                                                                    <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">Medical Cert</span>
+                                                                )}
+                                                                {detail.delegate_required && (
+                                                                    <span className="rounded bg-indigo-100 px-1.5 py-0.5 text-[10px] font-medium text-indigo-700">Delegate</span>
+                                                                )}
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                )}
+
                 {application.days && application.days.length > 0 && (
                     <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
                         <div className="border-b border-slate-200 px-6 py-4">
@@ -236,7 +327,7 @@ export default function ShowComponent({ application }) {
                                 {application.attachments.map((attachment) => (
                                     <li key={attachment.id} className="flex items-center justify-between">
                                         <div className="flex items-center gap-3">
-                                            <a href={route('employee.leave.applications.attachments.download', [application.id, attachment.id])} className="text-sky-700 hover:text-sky-900">
+                                            <a href={route('employee.employee.leave.applications.attachments.download', [application.id, attachment.id])} className="text-sky-700 hover:text-sky-900">
                                                 {attachment.original_file_name || attachment.file_name}
                                             </a>
                                             <span className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${

@@ -481,7 +481,7 @@ Route::middleware('auth')->group(function () {
 
                     Route::get('/{leave_policy}', 'show')
                         ->name('show')
-                        ->middleware('permission:manage leave policies');
+                        ->middleware('permission:leave.view-policy');
 
                     Route::get('/{leave_policy}/edit', 'edit')
                         ->name('edit')
@@ -668,7 +668,7 @@ Route::middleware('auth')->group(function () {
                 ->group(function () {
                     Route::get('/', 'index')
                         ->name('index')
-                        ->middleware('permission:view leave applications');
+                        ->middleware('permission:leave.manage-applications');
 
                     Route::get('/create', 'create')
                         ->name('create')
@@ -680,15 +680,15 @@ Route::middleware('auth')->group(function () {
 
                     Route::get('/{application}', 'show')
                         ->name('show')
-                        ->middleware('permission:view leave applications');
+                        ->middleware('permission:leave.manage-applications');
 
                     Route::get('/{application}/edit', 'edit')
                         ->name('edit')
-                        ->middleware('permission:edit leave application');
+                        ->middleware('permission:leave.manage-applications');
 
                     Route::put('/{application}', 'update')
                         ->name('update')
-                        ->middleware('permission:edit leave application');
+                        ->middleware('permission:leave.manage-applications');
 
                     Route::post('/{application}/submit', 'submit')
                         ->name('submit')
@@ -714,6 +714,10 @@ Route::middleware('auth')->group(function () {
                 Route::delete('leave/applications/{application}/attachments/{attachment}', [LeaveAttachmentController::class, 'destroy'])
                     ->name('leave.applications.attachments.destroy')
                     ->middleware('permission:delete leave attachment');
+
+                Route::get('leave/applications/{application}/attachments/{attachment}/download', [LeaveAttachmentController::class, 'download'])
+                    ->name('leave.applications.attachments.download')
+                    ->middleware('permission:download leave attachment');
 
                 Route::post('/{application}/delegate/accept', [LeaveDelegateController::class, 'accept'])
                     ->name('leave.applications.delegate.accept')

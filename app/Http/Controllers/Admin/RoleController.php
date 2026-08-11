@@ -106,7 +106,14 @@ class RoleController extends Controller
             $role->save();
         }
 
-        $role->syncPermissions($request->input('permissions', []));
+        $permissions = $request->input('permissions', []);
+        $permissionNames = collect($permissions)
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        $role->syncPermissions($permissionNames);
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         return to_route('admin.roles.index')

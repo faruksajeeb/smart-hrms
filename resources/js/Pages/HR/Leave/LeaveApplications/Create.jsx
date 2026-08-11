@@ -1,4 +1,4 @@
-import { Head, useForm, watch } from '@inertiajs/react';
+import { Head, useForm } from '@inertiajs/react';
 import HRLayout from '@/Layouts/HRLayout';
 
 export default function CreateComponent({ leaveTypes = [], policies = [], assignments = [] }) {

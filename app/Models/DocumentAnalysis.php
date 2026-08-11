@@ -66,4 +66,12 @@ class DocumentAnalysis extends Model
     {
         return in_array($this->status, [self::STATUS_COMPLETED, self::STATUS_FAILED], true);
     }
+
+    public function getCompletedAtAttribute($value)
+    {
+        if (is_null($value)) {
+            return null;
+        }
+        return \Carbon\Carbon::parse($value)->format('d-m-Y H:i');
+    }
 }
