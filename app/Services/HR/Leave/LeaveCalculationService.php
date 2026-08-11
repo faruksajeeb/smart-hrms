@@ -15,6 +15,7 @@ class LeaveCalculationService
     public function calculateDays(
         User $employee,
         LeavePolicy $policy,
+        LeavePolicyDetail $policyDetail,
         \DateTimeInterface $startDate,
         \DateTimeInterface $endDate,
         bool $isHalfDay = false,
@@ -27,6 +28,11 @@ class LeaveCalculationService
 
         $holidays = $this->getHolidays($employee, $startDate, $endDate);
         $weeklyOffDays = $this->getWeeklyOffDays($employee, $startDate, $endDate);
+
+        // Check policy rules for holiday/weekly off inclusion
+        $includeWeeklyOff = $policyDetail->include_weekly_off ?? false;
+        $includeHoliday = $policyDetail->include_holiday ?? false;
+        $sandwichRule = $policyDetail->sandwich_rule ?? false;
 
         for ($date = $start->copy(); $date->lte($end); $date->addDay()) {
             $dateStr = $date->format('Y-m-d');
@@ -44,8 +50,22 @@ class LeaveCalculationService
                 $dayType = 'half_day';
                 $session = $halfDaySession;
                 $countsAsLeave = true;
-            } elseif ($isHoliday || $isWeeklyOff || $isWeekend) {
-                $countsAsLeave = false;
+            } elseif ($isHoliday) {
+                $countsAsLeave = $includeHoliday;
+            } elseif ($isWeeklyOff) {
+                $countsAsLeave = $includeWeeklyOff;
+            }
+
+            // Sandwich rule: if a working day is sandwiched between two non-working days, it counts as leave
+            if ($sandwichRule && !$isHalfDay) {
+                $prevDate = $date->copy()->subDay()->format('Y-m-d');
+                $nextDate = $date->copy()->addDay()->format('Y-m-d');
+                $isPrevNonWorking = isset($holidays[$prevDate]) || isset($weeklyOffDays[$prevDate]);
+                $isNextNonWorking = isset($holidays[$nextDate]) || isset($weeklyOffDays[$nextDate]);
+                
+                if ($isPrevNonWorking && $isNextNonWorking) {
+                    $countsAsLeave = true;
+                }
             }
 
             $leaveDays = $countsAsLeave ? ($isHalfDay ? 0.5 : 1) : 0;

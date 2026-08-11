@@ -52,9 +52,19 @@ class LeaveApplicationService
 
             $policy = \App\Models\LeavePolicy::findOrFail($assignment->leave_policy_id);
 
+            $policyDetail = $policy->details()
+                ->where('leave_type_id', $leaveType->id)
+                ->where('status', 'active')
+                ->first();
+
+            if (!$policyDetail) {
+                throw new \RuntimeException("Leave type {$leaveType->leave_name} is not covered by your leave policy.");
+            }
+
             $days = $this->calculationService->calculateDays(
                 $employee,
                 $policy,
+                $policyDetail,
                 $startDate,
                 $endDate,
                 $data['is_half_day'] ?? false,
@@ -123,9 +133,19 @@ class LeaveApplicationService
 
             $policy = \App\Models\LeavePolicy::findOrFail($assignment->leave_policy_id);
 
+            $policyDetail = $policy->details()
+                ->where('leave_type_id', $leaveType->id)
+                ->where('status', 'active')
+                ->first();
+
+            if (!$policyDetail) {
+                throw new \RuntimeException("Leave type {$leaveType->leave_name} is not covered by your leave policy.");
+            }
+
             $days = $this->calculationService->calculateDays(
                 $application->employee,
                 $policy,
+                $policyDetail,
                 $startDate,
                 $endDate,
                 $data['is_half_day'] ?? false,

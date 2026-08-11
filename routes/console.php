@@ -10,3 +10,8 @@ Artisan::command('inspire', function () {
 
 Schedule::command('cache:warm-dashboard')
     ->everyFiveMinutes(); // Schedule the command to run every 5 minutes
+
+Schedule::command('leave:accrue')
+    ->monthlyOn(1, '02:00')
+    ->withoutOverlapping()
+    ->description('Process monthly leave accrual for all eligible employees');

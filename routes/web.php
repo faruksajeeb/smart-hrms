@@ -32,6 +32,7 @@ use App\Http\Controllers\HR\Leave\OpeningBalanceController;
 use App\Http\Controllers\HR\Leave\LeaveApplicationController;
 use App\Http\Controllers\HR\Leave\LeaveAttachmentController;
 use App\Http\Controllers\HR\Leave\LeaveDelegateController;
+use App\Http\Controllers\HR\Leave\LeaveBalanceController;
 
 
 use App\Http\Controllers\ProfileController;
@@ -659,6 +660,27 @@ Route::middleware('auth')->group(function () {
 
                     Route::get('/{ledger}', 'show')
                         ->name('show')
+                        ->middleware('permission:view leave ledger');
+                });
+
+                Route::controller(LeaveBalanceController::class)
+                ->prefix('leave/balances')
+                ->name('leave.balances.')
+                ->group(function () {
+                    Route::get('/', 'index')
+                        ->name('index')
+                        ->middleware('permission:view leave balances');
+
+                    Route::get('/employees/{employee}', 'employeeBalances')
+                        ->name('employee')
+                        ->middleware('permission:view leave balances');
+
+                    Route::get('/employees/{employee}/leave-types/{leaveType}', 'show')
+                        ->name('show')
+                        ->middleware('permission:view leave balances');
+
+                    Route::get('/employees/{employee}/leave-types/{leaveType}/ledger', 'ledger')
+                        ->name('ledger')
                         ->middleware('permission:view leave ledger');
                 });
 

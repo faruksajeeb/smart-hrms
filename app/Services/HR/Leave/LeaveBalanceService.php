@@ -8,10 +8,15 @@ use App\Models\LeaveOpeningBalance;
 use App\Models\LeavePolicyAssignment;
 use App\Models\LeaveType;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 
 class LeaveBalanceService
 {
+    public function __construct(
+        protected LeavePolicyResolver $policyResolver,
+    ) {}
+
     public function createLedgerEntry(array $data): LeaveBalanceLedger
     {
         return \Illuminate\Support\Facades\DB::transaction(function () use ($data) {
@@ -81,13 +86,92 @@ class LeaveBalanceService
         return $latest ? (float) $latest->balance_after : null;
     }
 
-    public function getLedger(User $user, LeaveType $leaveType)
+    public function getAvailableBalance(User $user, LeaveType $leaveType, ?string $asOfDate = null): ?float
     {
-        return LeaveBalanceLedger::where('user_id', $user->id)
+        $balance = $this->getBalance($user, $leaveType, $asOfDate);
+        if ($balance === null) {
+            return null;
+        }
+
+        // TODO: Subtract pending leave reservations if implemented
+        return $balance;
+    }
+
+    public function getLedger(User $user, LeaveType $leaveType, ?Carbon $from = null, ?Carbon $to = null)
+    {
+        $query = LeaveBalanceLedger::where('user_id', $user->id)
             ->where('leave_type_id', $leaveType->id)
             ->orderBy('transaction_date', 'asc')
-            ->orderBy('id', 'asc')
-            ->get();
+            ->orderBy('id', 'asc');
+
+        if ($from) {
+            $query->where('transaction_date', '>=', $from->format('Y-m-d'));
+        }
+
+        if ($to) {
+            $query->where('transaction_date', '<=', $to->format('Y-m-d'));
+        }
+
+        return $query->get();
+    }
+
+    public function getBalanceBreakdown(User $user, LeaveType $leaveType, ?string $asOfDate = null): array
+    {
+        $query = LeaveBalanceLedger::where('user_id', $user->id)
+            ->where('leave_type_id', $leaveType->id);
+
+        if ($asOfDate) {
+            $query->where('transaction_date', '<=', $asOfDate);
+        }
+
+        $breakdown = [
+            'opening' => 0,
+            'accrued' => 0,
+            'carry_forward' => 0,
+            'used' => 0,
+            'cancelled' => 0,
+            'adjustment' => 0,
+            'expired' => 0,
+            'encashment' => 0,
+            'available' => 0,
+        ];
+
+        $ledgers = $query->get();
+
+        foreach ($ledgers as $ledger) {
+            switch ($ledger->transaction_type) {
+                case 'opening':
+                    $breakdown['opening'] += $ledger->credit_days;
+                    break;
+                case 'accrual':
+                    $breakdown['accrued'] += $ledger->credit_days;
+                    break;
+                case 'carry_forward':
+                    $breakdown['carry_forward'] += $ledger->credit_days;
+                    break;
+                case 'leave_approved':
+                    $breakdown['used'] += $ledger->debit_days;
+                    break;
+                case 'leave_cancelled':
+                    $breakdown['cancelled'] += $ledger->credit_days;
+                    break;
+                case 'adjustment':
+                    $breakdown['adjustment'] += $ledger->days;
+                    break;
+                case 'expiry':
+                    $breakdown['expired'] += $ledger->debit_days;
+                    break;
+                case 'encashment':
+                    $breakdown['encashment'] += $ledger->debit_days;
+                    break;
+            }
+        }
+
+        $breakdown['available'] = $breakdown['opening'] + $breakdown['accrued'] + $breakdown['carry_forward'] 
+            - $breakdown['used'] - $breakdown['cancelled'] - $breakdown['expired'] - $breakdown['encashment']
+            + $breakdown['adjustment'];
+
+        return $breakdown;
     }
 
     public function importOpeningBalances(array $rows, string $effectiveDate, ?string $reason = null, ?int $userId = null): array
@@ -259,4 +343,3 @@ class LeaveBalanceService
         return $results;
     }
 }
-

@@ -1,16 +1,22 @@
 import { Head, useForm, Link } from '@inertiajs/react';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import EmployeeLayout from '@/Layouts/EmployeeLayout';
-import { useMemo } from 'react';
 import LeaveAttachmentUpload from '@/Components/LeaveAttachmentUpload';
+
+const toDateInputValue = (value) => {
+    if (!value) return '';
+    const date = new Date(value);
+    if (isNaN(date.getTime())) return '';
+    return date.toISOString().split('T')[0];
+};
 
 export default function EditComponent({ application, leaveTypes = [], allLeaveTypes = [], activePolicy = null, policyDetails = [], leaveBalances = [], policyError = null, user = {}, employees = [] }) {
     const [showPolicyRules, setShowPolicyRules] = useState(false);
 
     const { data, setData, put, post, processing, errors } = useForm({
         leave_type_id: application.leave_type_id,
-        start_date: application.start_date ? new Date(application.start_date).toISOString().split('T')[0] : '',
-        end_date: application.end_date ? new Date(application.end_date).toISOString().split('T')[0] : '',
+        start_date: toDateInputValue(application.start_date),
+        end_date: toDateInputValue(application.end_date),
         is_half_day: application.is_half_day,
         half_day_session: application.half_day_session || 'morning',
         is_emergency: application.is_emergency,
