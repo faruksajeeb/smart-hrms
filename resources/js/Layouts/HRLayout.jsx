@@ -135,6 +135,22 @@ const navigation = [
                 route: 'hr.leave.applications.index',
                 active: 'hr.leave.applications.*',
             },
+            {
+                label: 'Leave Dashboard',
+                route: 'hr.leave.dashboard.index',
+                active: 'hr.leave.dashboard.*',
+            },
+            {
+                label: 'Leave Calendar',
+                route: 'hr.leave.calendar.index',
+                active: 'hr.leave.calendar.*',
+            },
+            {
+                label: 'Manager Dashboard',
+                route: 'hr.leave.manager-dashboard.index',
+                active: 'hr.leave.manager-dashboard.*',
+            },
+            
         ],
     },
     {

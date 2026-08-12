@@ -12,6 +12,13 @@ class CompanyAdminResolver implements ApproverResolverInterface
         $companyId = $requestedBy->company_id;
 
         if (!$companyId) {
+            $currentHistory = $requestedBy->currentEmploymentHistory;
+            if ($currentHistory) {
+                $companyId = $currentHistory->company_id;
+            }
+        }
+
+        if (!$companyId) {
             return null;
         }
 

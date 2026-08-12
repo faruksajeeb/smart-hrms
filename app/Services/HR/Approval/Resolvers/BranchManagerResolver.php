@@ -12,6 +12,13 @@ class BranchManagerResolver implements ApproverResolverInterface
         $branchId = $requestedBy->branch_id;
 
         if (!$branchId) {
+            $currentHistory = $requestedBy->currentEmploymentHistory;
+            if ($currentHistory) {
+                $branchId = $currentHistory->branch_id;
+            }
+        }
+
+        if (!$branchId) {
             return null;
         }
 

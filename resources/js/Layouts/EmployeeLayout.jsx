@@ -24,6 +24,16 @@ const navigation = [
                 route: 'employee.leave.applications.create',
                 active: 'employee.leave.applications.create',
             },
+             {
+                label: 'My Leave Calendar',
+                route: 'employee.leave.calendar.index',
+                active: 'employee.leave.calendar.*',
+            },
+             {
+                label: 'Team Calendar',
+                route: 'employee.leave.team-calendar.index',
+                active: 'employee.leave.team-calendar.*',
+            },
         ],
     },
 ];

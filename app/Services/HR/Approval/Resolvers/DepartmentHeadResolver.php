@@ -13,6 +13,13 @@ class DepartmentHeadResolver implements ApproverResolverInterface
         $departmentId = $requestedBy->department_id;
 
         if (!$departmentId) {
+            $currentHistory = $requestedBy->currentEmploymentHistory;
+            if ($currentHistory) {
+                $departmentId = $currentHistory->department_id;
+            }
+        }
+
+        if (!$departmentId) {
             return null;
         }
 

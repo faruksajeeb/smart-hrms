@@ -33,6 +33,10 @@ use App\Http\Controllers\HR\Leave\LeaveApplicationController;
 use App\Http\Controllers\HR\Leave\LeaveAttachmentController;
 use App\Http\Controllers\HR\Leave\LeaveDelegateController;
 use App\Http\Controllers\HR\Leave\LeaveBalanceController;
+use App\Http\Controllers\HR\Leave\TeamLeaveCalendarController;
+use App\Http\Controllers\HR\Leave\ManagerLeaveDashboardController;
+use App\Http\Controllers\HR\Leave\HRLeaveDashboardController;
+use App\Http\Controllers\Employee\Leave\LeaveCalendarController;
 
 
 use App\Http\Controllers\ProfileController;
@@ -645,7 +649,7 @@ Route::middleware('auth')->group(function () {
                         ->middleware('permission:manage leave balances');
                 });
 
-                Route::controller(LeaveLedgerController::class)
+            Route::controller(LeaveLedgerController::class)
                 ->prefix('leave/ledgers')
                 ->name('leave.ledgers.')
                 ->group(function () {
@@ -663,7 +667,7 @@ Route::middleware('auth')->group(function () {
                         ->middleware('permission:view leave ledger');
                 });
 
-                Route::controller(LeaveBalanceController::class)
+            Route::controller(LeaveBalanceController::class)
                 ->prefix('leave/balances')
                 ->name('leave.balances.')
                 ->group(function () {
@@ -684,7 +688,7 @@ Route::middleware('auth')->group(function () {
                         ->middleware('permission:view leave ledger');
                 });
 
-                Route::controller(LeaveApplicationController::class)
+            Route::controller(LeaveApplicationController::class)
                 ->prefix('leave/applications')
                 ->name('leave.applications.')
                 ->group(function () {
@@ -729,25 +733,25 @@ Route::middleware('auth')->group(function () {
                         ->middleware('permission:delete leave application');
                 });
 
-                Route::post('leave/applications/{application}/attachments', [LeaveAttachmentController::class, 'store'])
-                    ->name('leave.applications.attachments.store')
-                    ->middleware('permission:upload leave attachment');
+            Route::post('leave/applications/{application}/attachments', [LeaveAttachmentController::class, 'store'])
+                ->name('leave.applications.attachments.store')
+                ->middleware('permission:upload leave attachment');
 
-                Route::delete('leave/applications/{application}/attachments/{attachment}', [LeaveAttachmentController::class, 'destroy'])
-                    ->name('leave.applications.attachments.destroy')
-                    ->middleware('permission:delete leave attachment');
+            Route::delete('leave/applications/{application}/attachments/{attachment}', [LeaveAttachmentController::class, 'destroy'])
+                ->name('leave.applications.attachments.destroy')
+                ->middleware('permission:delete leave attachment');
 
-                Route::get('leave/applications/{application}/attachments/{attachment}/download', [LeaveAttachmentController::class, 'download'])
-                    ->name('leave.applications.attachments.download')
-                    ->middleware('permission:download leave attachment');
+            Route::get('leave/applications/{application}/attachments/{attachment}/download', [LeaveAttachmentController::class, 'download'])
+                ->name('leave.applications.attachments.download')
+                ->middleware('permission:download leave attachment');
 
-                Route::post('/{application}/delegate/accept', [LeaveDelegateController::class, 'accept'])
-                    ->name('leave.applications.delegate.accept')
-                    ->middleware('permission:accept leave delegation');
+            Route::post('/{application}/delegate/accept', [LeaveDelegateController::class, 'accept'])
+                ->name('leave.applications.delegate.accept')
+                ->middleware('permission:accept leave delegation');
 
-                Route::post('/{application}/delegate/decline', [LeaveDelegateController::class, 'decline'])
-                    ->name('leave.applications.delegate.decline')
-                    ->middleware('permission:decline leave delegation');
+            Route::post('/{application}/delegate/decline', [LeaveDelegateController::class, 'decline'])
+                ->name('leave.applications.delegate.decline')
+                ->middleware('permission:decline leave delegation');
             // =========
         });
 
@@ -763,6 +767,7 @@ Route::middleware('auth')->group(function () {
                 ],
             ]);
         })->middleware('permission:manage payroll')->name('payroll');
+
         Route::get('/leave-requests', function () {
             return Inertia::render('Modules/Show', [
                 'layout' => 'hr',
@@ -775,6 +780,45 @@ Route::middleware('auth')->group(function () {
                 ],
             ]);
         })->middleware('permission:manage leave requests')->name('leave');
+
+        Route::prefix('leave')->name('leave.')->group(function () {
+            Route::get('attachments', [\App\Http\Controllers\HR\Leave\LeaveAttachmentController::class, 'hrIndex'])
+                ->name('attachments.index')
+                ->middleware('permission:leave.view-all-applications');
+
+            Route::post('attachments/{attachment}/verify', [\App\Http\Controllers\HR\Leave\LeaveAttachmentController::class, 'verify'])
+                ->name('attachments.verify')
+                ->middleware('permission:leave.verify-attachment');
+
+            Route::post('attachments/{attachment}/reject', [\App\Http\Controllers\HR\Leave\LeaveAttachmentController::class, 'reject'])
+                ->name('attachments.reject')
+                ->middleware('permission:leave.reject-attachment');
+
+            Route::middleware('permission:leave.view-reports')->group(function () {
+
+                Route::controller(ManagerLeaveDashboardController::class)
+                    ->prefix('manager-dashboard')
+                    ->name('manager-dashboard.')
+                    ->group(function () {
+                        Route::get('/', 'index')->name('index');
+                    });
+
+                Route::controller(HRLeaveCalendarController::class)
+                    ->prefix('calendar')
+                    ->name('calendar.')
+                    ->group(function () {
+                        Route::get('/', 'index')->name('index');
+                        Route::get('/day-details', 'dayDetails')->name('day-details');
+                    });
+
+                Route::controller(HRLeaveDashboardController::class)
+                    ->prefix('dashboard')
+                    ->name('dashboard.')
+                    ->group(function () {
+                        Route::get('/', 'index')->name('index');
+                    });
+            });
+        });
     });
 
 
@@ -874,21 +918,24 @@ Route::middleware('auth')->group(function () {
         Route::post('leave/delegations/{application}/decline', [LeaveDelegateController::class, 'decline'])
             ->name('employee.leave.delegations.decline')
             ->middleware('permission:leave.decline-delegation');
+
+        Route::controller(LeaveCalendarController::class)
+            ->prefix('leave/calendar')
+            ->name('leave.calendar.')
+            ->group(function () {
+                Route::get('/', 'index')->name('index')->middleware('permission:leave.view-own-applications');
+            });
+
+        Route::controller(TeamLeaveCalendarController::class)
+            ->prefix('leave/team-calendar')
+            ->name('leave.team-calendar.')
+            ->group(function () {
+                Route::get('/', 'index')->name('index');
+                Route::get('/summary', 'summary')->name('summary');
+            });
     });
 });
 
-Route::middleware(['auth', 'role:hr|admin'])->prefix('hr/leave')->name('hr.leave.')->group(function () {
-    Route::get('attachments', [\App\Http\Controllers\HR\Leave\LeaveAttachmentController::class, 'hrIndex'])
-        ->name('attachments.index')
-        ->middleware('permission:leave.view-all-applications');
 
-    Route::post('attachments/{attachment}/verify', [\App\Http\Controllers\HR\Leave\LeaveAttachmentController::class, 'verify'])
-        ->name('attachments.verify')
-        ->middleware('permission:leave.verify-attachment');
-
-    Route::post('attachments/{attachment}/reject', [\App\Http\Controllers\HR\Leave\LeaveAttachmentController::class, 'reject'])
-        ->name('attachments.reject')
-        ->middleware('permission:leave.reject-attachment');
-});
 
 require __DIR__ . '/auth.php';

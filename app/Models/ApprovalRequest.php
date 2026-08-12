@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 use App\Enums\ApprovalStatus;
@@ -51,11 +52,17 @@ class ApprovalRequest extends Model
         return $this->hasMany(ApprovalRequestStep::class);
     }
 
-    public function currentStep(): HasOne
+    public function getCurrentStepAttribute()
     {
-        return $this->hasOne(ApprovalRequestStep::class)
+        return $this->steps
             ->where('level_no', $this->current_level)
-            ->where('status', ApprovalStatus::Pending);
+            ->where('status', ApprovalStatus::Pending)
+            ->first();
+    }
+
+    public function reference(): \Illuminate\Database\Eloquent\Relations\MorphTo
+    {
+        return $this->morphTo();
     }
 
     public function getSubmittedAtAttribute($value)
