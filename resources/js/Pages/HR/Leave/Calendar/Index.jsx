@@ -5,7 +5,7 @@ import SearchSelect from '@/Components/SearchSelect';
 import SecondaryButton from '@/Components/SecondaryButton';
 import Modal from '@/Components/Modal';
 
-const WEEK_DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const WEEK_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 const STATUS_COLORS = {
     approved: 'bg-emerald-100 text-emerald-800 border-emerald-200',
@@ -16,24 +16,34 @@ const STATUS_COLORS = {
 };
 
 function buildCalendarGrid(year, month) {
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
+    // Backend month is 1-12.
+    // JavaScript Date month is 0-11.
+    const jsMonth = month - 1;
+
+    const firstDay = new Date(year, jsMonth, 1);
+    const lastDay = new Date(year, jsMonth + 1, 0);
+
     const daysInMonth = lastDay.getDate();
-    const startDayOfWeek = firstDay.getDay();
+    const startDayOfWeek = (firstDay.getDay() + 6) % 7;
 
     const days = [];
+
     for (let i = 0; i < startDayOfWeek; i++) {
         days.push(null);
     }
+
     for (let d = 1; d <= daysInMonth; d++) {
         days.push(d);
     }
 
     return {
-        label: firstDay.toLocaleString('default', { month: 'long', year: 'numeric' }),
+        label: firstDay.toLocaleString('default', {
+            month: 'long',
+            year: 'numeric'
+        }),
         days,
         year,
-        month,
+        month, // Keep month as 1-12
     };
 }
 
@@ -49,6 +59,8 @@ export default function IndexComponent({
         const now = new Date();
         return { year: now.getFullYear(), month: now.getMonth() + 1, day: now.getDate() };
     }, []);
+
+    const [filtersOpen, setFiltersOpen] = useState(false);
 
     const [selectedEvent, setSelectedEvent] = useState(null);
     const [selectedDay, setSelectedDay] = useState(null);
@@ -66,8 +78,24 @@ export default function IndexComponent({
     const [employmentType, setEmploymentType] = useState(filters.employment_type_id ?? '');
     const [leaveType, setLeaveType] = useState(filters.leave_type_id ?? '');
     const [status, setStatus] = useState(filters.status ?? 'approved');
-    const [employeeId, setEmployeeId] = useState(filters.employee_id ?? '');
+    const [employee, setEmployee] = useState(filters.employee ?? '');
     const [includeNonLeave, setIncludeNonLeave] = useState(filters.include_non_leave ?? false);
+
+    useEffect(() => {
+        setCompany(filters.company_id ?? '');
+        setBranch(filters.branch_id ?? '');
+        setCluster(filters.cluster_id ?? '');
+        setDivision(filters.division_id ?? '');
+        setDepartment(filters.department_id ?? '');
+        setSection(filters.section_id ?? '');
+        setUnit(filters.unit_id ?? '');
+        setDesignation(filters.designation_id ?? '');
+        setEmploymentType(filters.employment_type_id ?? '');
+        setLeaveType(filters.leave_type_id ?? '');
+        setStatus(filters.status ?? 'approved');
+        setEmployee(filters.employee ?? '');
+        setIncludeNonLeave(filters.include_non_leave ?? false);
+    }, [filters]);
 
     const grid = useMemo(() => buildCalendarGrid(year, month), [year, month]);
 
@@ -80,7 +108,12 @@ export default function IndexComponent({
         return map;
     }, [events]);
 
-    const hasFilters = [company, branch, cluster, division, department, section, unit, designation, employmentType, leaveType, status, employeeId, includeNonLeave].some(Boolean);
+    const hasFilters = [company, branch, cluster, division, department, section, unit, designation, employmentType, leaveType, status !== 'approved' ? status : '', employee, includeNonLeave].some(Boolean);
+
+    const dependentOptions = (key, parent) => {
+        const values = options[key] ?? [];
+        return parent ? values.filter((item) => String(item.parent_id ?? '') === String(parent)) : values;
+    };
 
     const navigateToMonth = (newYear, newMonth) => {
         router.get(route('hr.leave.calendar.index'), {
@@ -97,7 +130,7 @@ export default function IndexComponent({
             employment_type_id: employmentType || undefined,
             leave_type_id: leaveType || undefined,
             status: status,
-            employee_id: employeeId || undefined,
+            employee: employee || undefined,
             include_non_leave: includeNonLeave ? 1 : undefined,
         }, {
             preserveState: true,
@@ -120,7 +153,7 @@ export default function IndexComponent({
             employment_type_id: employmentType || undefined,
             leave_type_id: leaveType || undefined,
             status: status,
-            employee_id: employeeId || undefined,
+            employee: employee || undefined,
             include_non_leave: includeNonLeave ? 1 : undefined,
         }, {
             preserveState: true,
@@ -140,7 +173,7 @@ export default function IndexComponent({
         setEmploymentType('');
         setLeaveType('');
         setStatus('approved');
-        setEmployeeId('');
+        setEmployee('');
         setIncludeNonLeave(false);
 
         router.get(route('hr.leave.calendar.index'), {
@@ -172,7 +205,7 @@ export default function IndexComponent({
                     employment_type_id: employmentType || '',
                     leave_type_id: leaveType || '',
                     status: status,
-                    employee_id: employeeId || '',
+                    employee: employee || '',
                     include_non_leave: includeNonLeave ? '1' : '0',
                 }).toString()
             );
@@ -236,6 +269,276 @@ export default function IndexComponent({
                         <p className="mt-2 text-3xl font-semibold text-slate-900">{summary.applications}</p>
                     </div>
                 </div>
+
+                <section className="rounded-3xl border border-slate-200 bg-white shadow-sm">
+    {/* Filter Header */}
+    <button
+        type="button"
+        onClick={() => setFiltersOpen((prev) => !prev)}
+        className="flex w-full items-center justify-between p-6 text-left"
+        aria-expanded={filtersOpen}
+    >
+        <div>
+            <h2 className="text-lg font-semibold text-slate-900">
+                Filters
+            </h2>
+
+            <p className="mt-1 text-sm text-slate-500">
+                Filter by organizational scope, leave type, status, or employee.
+            </p>
+        </div>
+
+        <svg
+            className={`h-5 w-5 text-slate-500 transition-transform duration-200 ${
+                filtersOpen ? 'rotate-180' : ''
+            }`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+        >
+            <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 9l-7 7-7-7"
+            />
+        </svg>
+    </button>
+
+    {/* Filter Content */}
+    {filtersOpen && (
+        <div className="border-t border-slate-100 px-6 pb-6 pt-6">
+            <form
+                onSubmit={(e) => {
+                    e.preventDefault();
+                    applyFilters();
+                }}
+                className="space-y-4"
+            >
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+
+                    <SearchSelect
+                        id="company"
+                        label="Company"
+                        value={company}
+                        onChange={(val) => {
+                            setCompany(val);
+                            setBranch('');
+                            setCluster('');
+                            setDivision('');
+                            setDepartment('');
+                            setSection('');
+                            setUnit('');
+                        }}
+                        options={options.companies ?? []}
+                        placeholder="All companies"
+                        isClearable
+                    />
+
+                    <SearchSelect
+                        id="branch"
+                        label="Branch"
+                        value={branch}
+                        onChange={(val) => {
+                            setBranch(val);
+                            setCluster('');
+                            setDivision('');
+                            setDepartment('');
+                            setSection('');
+                            setUnit('');
+                        }}
+                        options={dependentOptions('branches', company)}
+                        placeholder="All branches"
+                        isClearable
+                    />
+
+                    <SearchSelect
+                        id="cluster"
+                        label="Cluster"
+                        value={cluster}
+                        onChange={(val) => {
+                            setCluster(val);
+                            setDivision('');
+                            setDepartment('');
+                            setSection('');
+                            setUnit('');
+                        }}
+                        options={dependentOptions('clusters', branch || company)}
+                        placeholder="All clusters"
+                        isClearable
+                    />
+
+                    <SearchSelect
+                        id="division"
+                        label="Division"
+                        value={division}
+                        onChange={(val) => {
+                            setDivision(val);
+                            setDepartment('');
+                            setSection('');
+                            setUnit('');
+                        }}
+                        options={dependentOptions(
+                            'divisions',
+                            cluster || branch || company
+                        )}
+                        placeholder="All divisions"
+                        isClearable
+                    />
+
+                    <SearchSelect
+                        id="department"
+                        label="Department"
+                        value={department}
+                        onChange={(val) => {
+                            setDepartment(val);
+                            setSection('');
+                            setUnit('');
+                        }}
+                        options={dependentOptions(
+                            'departments',
+                            division || cluster || branch || company
+                        )}
+                        placeholder="All departments"
+                        isClearable
+                    />
+
+                    <SearchSelect
+                        id="section"
+                        label="Section"
+                        value={section}
+                        onChange={(val) => {
+                            setSection(val);
+                            setUnit('');
+                        }}
+                        options={dependentOptions(
+                            'sections',
+                            department ||
+                                division ||
+                                cluster ||
+                                branch ||
+                                company
+                        )}
+                        placeholder="All sections"
+                        isClearable
+                    />
+
+                    <SearchSelect
+                        id="unit"
+                        label="Unit"
+                        value={unit}
+                        onChange={setUnit}
+                        options={dependentOptions(
+                            'units',
+                            section ||
+                                department ||
+                                division ||
+                                cluster ||
+                                branch ||
+                                company
+                        )}
+                        placeholder="All units"
+                        isClearable
+                    />
+
+                    <SearchSelect
+                        id="designation"
+                        label="Designation"
+                        value={designation}
+                        onChange={setDesignation}
+                        options={options.designations ?? []}
+                        placeholder="All designations"
+                        isClearable
+                    />
+
+                    <SearchSelect
+                        id="employment_type"
+                        label="Employment Type"
+                        value={employmentType}
+                        onChange={setEmploymentType}
+                        options={options.employmentTypes ?? []}
+                        placeholder="All employment types"
+                        isClearable
+                    />
+
+                    <SearchSelect
+                        id="leave_type"
+                        label="Leave Type"
+                        value={leaveType}
+                        onChange={setLeaveType}
+                        options={options.leaveTypes ?? []}
+                        placeholder="All leave types"
+                        isClearable
+                    />
+
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700">
+                            Status
+                        </label>
+
+                        <select
+                            value={status}
+                            onChange={(e) => setStatus(e.target.value)}
+                            className="mt-2 w-full rounded-xl border border-slate-300 px-3 py-2"
+                        >
+                            {(options.statuses ?? []).map((s) => (
+                                <option key={s.value} value={s.value}>
+                                    {s.label}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700">
+                            Employee
+                        </label>
+
+                        <input
+                            type="text"
+                            value={employee}
+                            onChange={(e) => setEmployee(e.target.value)}
+                            placeholder="Search by employee ID or name"
+                            className="mt-2 w-full rounded-xl border border-slate-300 px-3 py-2"
+                        />
+                    </div>
+
+                    <div className="flex items-end">
+                        <label className="flex items-center gap-2 rounded-xl border border-slate-300 px-3 py-2">
+                            <input
+                                type="checkbox"
+                                checked={includeNonLeave}
+                                onChange={(e) =>
+                                    setIncludeNonLeave(e.target.checked)
+                                }
+                            />
+
+                            <span className="text-sm text-slate-700">
+                                Include holidays/weekly offs
+                            </span>
+                        </label>
+                    </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-3">
+                    {hasFilters && (
+                        <button
+                            type="button"
+                            onClick={clearFilters}
+                            className="text-sm font-medium text-slate-500 hover:text-slate-700"
+                        >
+                            Clear Filters
+                        </button>
+                    )}
+
+                    <SecondaryButton type="submit">
+                        Apply Filters
+                    </SecondaryButton>
+                </div>
+            </form>
+        </div>
+    )}
+</section>
 
                 <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -315,7 +618,7 @@ export default function IndexComponent({
                             <div className="grid grid-cols-7">
                                 {grid.days.map((day, dIdx) => {
                                     const dateStr = day
-                                        ? `${grid.year}-${String(grid.month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+                                        ? `${grid.year}-${String(grid.month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
                                         : null;
                                     const dayEvents = dateStr ? (eventsByDate[dateStr] || []) : [];
                                     const leaveEvents = dayEvents.filter(e => e.counts_as_leave);
@@ -335,6 +638,11 @@ export default function IndexComponent({
                                                         {day}
                                                     </div>
                                                     <div className="mt-1 space-y-1">
+                                                        {displayEvents.length > 0 && (
+                                                            <div className="text-[10px] font-semibold text-slate-500">
+                                                                {new Set(displayEvents.filter((event) => event.counts_as_leave).map((event) => event.employee?.id ?? event.employee_id)).size} on leave
+                                                            </div>
+                                                        )}
                                                         {displayEvents.slice(0, 3).map((evt, eIdx) => (
                                                             <div
                                                                 key={eIdx}
@@ -376,154 +684,7 @@ export default function IndexComponent({
                     )}
                 </section>
 
-                <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                    <h2 className="text-lg font-semibold text-slate-900">Filters</h2>
-                    <p className="mt-1 text-sm text-slate-500">
-                        Filter by organizational scope, leave type, status, or employee.
-                    </p>
-
-                    <form onSubmit={(e) => { e.preventDefault(); applyFilters(); }} className="mt-6 space-y-4">
-                        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                            <SearchSelect
-                                id="company"
-                                label="Company"
-                                value={company}
-                                onChange={(val) => { setCompany(val); setBranch(''); setCluster(''); setDivision(''); setDepartment(''); setSection(''); setUnit(''); }}
-                                options={options.companies ?? []}
-                                placeholder="All companies"
-                                isClearable
-                            />
-                            <SearchSelect
-                                id="branch"
-                                label="Branch"
-                                value={branch}
-                                onChange={(val) => { setBranch(val); setCluster(''); setDivision(''); setDepartment(''); setSection(''); setUnit(''); }}
-                                options={options.branches ?? []}
-                                placeholder="All branches"
-                                isClearable
-                            />
-                            <SearchSelect
-                                id="cluster"
-                                label="Cluster"
-                                value={cluster}
-                                onChange={(val) => { setCluster(val); setDivision(''); setDepartment(''); setSection(''); setUnit(''); }}
-                                options={options.clusters ?? []}
-                                placeholder="All clusters"
-                                isClearable
-                            />
-                            <SearchSelect
-                                id="division"
-                                label="Division"
-                                value={division}
-                                onChange={(val) => { setDivision(val); setDepartment(''); setSection(''); setUnit(''); }}
-                                options={options.divisions ?? []}
-                                placeholder="All divisions"
-                                isClearable
-                            />
-                            <SearchSelect
-                                id="department"
-                                label="Department"
-                                value={department}
-                                onChange={(val) => { setDepartment(val); setSection(''); setUnit(''); }}
-                                options={options.departments ?? []}
-                                placeholder="All departments"
-                                isClearable
-                            />
-                            <SearchSelect
-                                id="section"
-                                label="Section"
-                                value={section}
-                                onChange={(val) => { setSection(val); setUnit(''); }}
-                                options={options.sections ?? []}
-                                placeholder="All sections"
-                                isClearable
-                            />
-                            <SearchSelect
-                                id="unit"
-                                label="Unit"
-                                value={unit}
-                                onChange={setUnit}
-                                options={options.units ?? []}
-                                placeholder="All units"
-                                isClearable
-                            />
-                            <SearchSelect
-                                id="designation"
-                                label="Designation"
-                                value={designation}
-                                onChange={setDesignation}
-                                options={options.designations ?? []}
-                                placeholder="All designations"
-                                isClearable
-                            />
-                            <SearchSelect
-                                id="employment_type"
-                                label="Employment Type"
-                                value={employmentType}
-                                onChange={setEmploymentType}
-                                options={options.employmentTypes ?? []}
-                                placeholder="All employment types"
-                                isClearable
-                            />
-                            <SearchSelect
-                                id="leave_type"
-                                label="Leave Type"
-                                value={leaveType}
-                                onChange={setLeaveType}
-                                options={options.leaveTypes ?? []}
-                                placeholder="All leave types"
-                                isClearable
-                            />
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700">Status</label>
-                                <select
-                                    value={status}
-                                    onChange={(e) => setStatus(e.target.value)}
-                                    className="mt-2 w-full rounded-xl border border-slate-300 px-3 py-2"
-                                >
-                                    {(options.statuses ?? []).map((s) => (
-                                        <option key={s.value} value={s.value}>{s.label}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700">Employee</label>
-                                <input
-                                    type="text"
-                                    value={employeeId}
-                                    onChange={(e) => setEmployeeId(e.target.value)}
-                                    placeholder="Search by employee ID or name"
-                                    className="mt-2 w-full rounded-xl border border-slate-300 px-3 py-2"
-                                />
-                            </div>
-                            <div className="flex items-end">
-                                <label className="flex items-center gap-2 rounded-xl border border-slate-300 px-3 py-2">
-                                    <input
-                                        type="checkbox"
-                                        checked={includeNonLeave}
-                                        onChange={(e) => setIncludeNonLeave(e.target.checked)}
-                                    />
-                                    <span className="text-sm text-slate-700">Include holidays/weekly offs</span>
-                                </label>
-                            </div>
-                        </div>
-
-                        <div className="flex items-center justify-end gap-3">
-                            {hasFilters && (
-                                <button
-                                    type="button"
-                                    onClick={clearFilters}
-                                    className="text-sm font-medium text-slate-500 hover:text-slate-700"
-                                >
-                                    Clear Filters
-                                </button>
-                            )}
-                            <SecondaryButton type="submit">
-                                Apply Filters
-                            </SecondaryButton>
-                        </div>
-                    </form>
-                </section>
+                
             </div>
 
             <Modal show={!!selectedEvent} onClose={() => setSelectedEvent(null)} maxWidth="2xl">

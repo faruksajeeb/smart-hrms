@@ -36,6 +36,7 @@ use App\Http\Controllers\HR\Leave\LeaveBalanceController;
 use App\Http\Controllers\HR\Leave\TeamLeaveCalendarController;
 use App\Http\Controllers\HR\Leave\ManagerLeaveDashboardController;
 use App\Http\Controllers\HR\Leave\HRLeaveDashboardController;
+use App\Http\Controllers\HR\Leave\HRLeaveCalendarController;
 use App\Http\Controllers\Employee\Leave\LeaveCalendarController;
 
 

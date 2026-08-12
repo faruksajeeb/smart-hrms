@@ -53,7 +53,7 @@ class LeaveCalendarService
         }
 
         $days = $query->orderBy('leave_date')->orderBy('id')->get();
-// dd($days);
+        // dd($days);
         $events = [];
         foreach ($days as $day) {
             $application = $day->application;
@@ -404,14 +404,25 @@ class LeaveCalendarService
     public function getHRCalendar(User $hrUser, Carbon $from, Carbon $to, array $filters = []): array
     {
         $scope = $this->getCompanyScope($hrUser);
+        // $test = LeaveApplicationDay::query()
+        //     ->whereBetween('leave_date', [
+        //         $from->format('Y-m-d'),
+        //         $to->format('Y-m-d'),
+        //     ])
+        //     ->get();
 
+        // dd($test);
+
+        // dd($from->format('Y-m-d'), $to->format('Y-m-d'), $scope, $filters);
         $query = LeaveApplicationDay::query()
             ->join('leave_applications', 'leave_applications.id', '=', 'leave_application_days.leave_application_id')
             ->join('users', 'users.id', '=', 'leave_applications.user_id')
+            ->leftJoin('users as delegate_users', 'delegate_users.id', '=', 'leave_applications.delegate_user_id')
             ->join('leave_types', 'leave_types.id', '=', 'leave_applications.leave_type_id')
             ->whereBetween('leave_application_days.leave_date', [$from->format('Y-m-d'), $to->format('Y-m-d')])
             ->select(
                 'leave_application_days.*',
+                'leave_application_days.leave_date as calendar_date',
                 'leave_applications.status as application_status',
                 'leave_applications.application_no',
                 'leave_applications.reason',
@@ -420,6 +431,10 @@ class LeaveCalendarService
                 'leave_applications.submitted_at',
                 'leave_applications.approved_at',
                 'leave_applications.delegate_user_id',
+                'leave_applications.leave_type_id',
+                'delegate_users.name as delegate_name',
+                'delegate_users.employee_id as delegate_employee_code',
+                'users.id as employee_user_id',
                 'users.name as employee_name',
                 'users.employee_id as employee_code',
                 'users.company_id',
@@ -435,59 +450,118 @@ class LeaveCalendarService
                 'leave_types.display_color'
             );
 
-        if ($scope['company_id']) {
+        // ============================================================
+        // 1. HR ACCESS SCOPE
+        // ============================================================
+
+        if ($scope['company_id'] !== null) {
             $query->where('users.company_id', $scope['company_id']);
         }
-        if ($scope['branch_id']) {
+
+        if ($scope['branch_id'] !== null) {
             $query->where('users.branch_id', $scope['branch_id']);
         }
 
-        if (!empty($filters['company_id'])) {
-            $query->where('users.company_id', $filters['company_id']);
-        }
-        if (!empty($filters['branch_id'])) {
-            $query->where('users.branch_id', $filters['branch_id']);
-        }
-        if (!empty($filters['division_id'])) {
-            $query->where('users.division_id', $filters['division_id']);
-        }
-        if (!empty($filters['department_id'])) {
-            $query->where('users.department_id', $filters['department_id']);
-        }
-        if (!empty($filters['section_id'])) {
-            $query->where('users.section_id', $filters['section_id']);
-        }
-        if (!empty($filters['unit_id'])) {
-            $query->where('users.unit_id', $filters['unit_id']);
-        }
-        if (!empty($filters['designation_id'])) {
-            $query->where('users.designation_id', $filters['designation_id']);
-        }
-        if (!empty($filters['employment_type_id'])) {
-            $query->where('users.employment_type_id', $filters['employment_type_id']);
+
+        // ============================================================
+        // 2. CALENDAR FILTERS
+        // ============================================================
+
+        $filterFields = [
+            'company_id',
+            'branch_id',
+            'division_id',
+            'department_id',
+            'section_id',
+            'unit_id',
+            'designation_id',
+            'employment_type_id',
+        ];
+
+        foreach ($filterFields as $field) {
+            $value = (int) ($filters[$field] ?? 0);
+
+            if ($value > 0) {
+                $query->where("users.{$field}", $value);
+            }
         }
 
+
+        // ============================================================
+        // 3. STATUS
+        // ============================================================
+
         $status = $filters['status'] ?? 'approved';
-        if ($status === 'all') {
-            // no status filter
-        } else {
+
+        if ($status !== 'all') {
             $query->where('leave_applications.status', $status);
         }
 
-        if (!empty($filters['leave_type_id'])) {
-            $query->where('leave_applications.leave_type_id', $filters['leave_type_id']);
+
+        // ============================================================
+        // 4. LEAVE TYPE
+        // ============================================================
+
+        $leaveTypeId = (int) ($filters['leave_type_id'] ?? 0);
+
+        if ($leaveTypeId > 0) {
+            $query->where(
+                'leave_applications.leave_type_id',
+                $leaveTypeId
+            );
         }
 
-        if (!empty($filters['employee_id'])) {
-            $query->where('leave_applications.user_id', $filters['employee_id']);
+
+        // ============================================================
+        // 5. EMPLOYEE
+        // ============================================================
+
+        $employeeId = (int) ($filters['employee_id'] ?? 0);
+
+        if ($employeeId > 0) {
+            $query->where(
+                'leave_applications.user_id',
+                $employeeId
+            );
         }
 
-        if (empty($filters['include_non_leave'])) {
-            $query->where('leave_application_days.counts_as_leave', true);
+
+        // ============================================================
+        // 6. EMPLOYEE SEARCH
+        // ============================================================
+
+        $employeeSearch = trim($filters['employee'] ?? '');
+
+        if ($employeeSearch !== '') {
+            $query->where(function ($q) use ($employeeSearch) {
+                $q->where(
+                    'users.employee_id',
+                    'like',
+                    "%{$employeeSearch}%"
+                )->orWhere(
+                    'users.name',
+                    'like',
+                    "%{$employeeSearch}%"
+                );
+            });
+        }
+
+
+        // ============================================================
+        // 7. INCLUDE NON-LEAVE
+        // ============================================================
+
+        $includeNonLeave = (bool) ($filters['include_non_leave'] ?? false);
+
+        if (!$includeNonLeave) {
+            $query->where(
+                'leave_application_days.counts_as_leave',
+                true
+            );
         }
 
         $days = $query->orderBy('leave_application_days.leave_date')->orderBy('leave_application_days.id')->get();
-
+        // dd($days);
         $events = [];
         $employeeIds = [];
         $applicationIds = [];
@@ -496,7 +570,7 @@ class LeaveCalendarService
         foreach ($days as $day) {
             $events[] = [
                 'id' => $day->id,
-                'date' => $day->leave_date,
+                'date' => $day->calendar_date,
                 'day_type' => $day->day_type,
                 'session' => $day->session,
                 'leave_days' => (float) $day->leave_days,
@@ -505,7 +579,7 @@ class LeaveCalendarService
                 'counts_as_leave' => (bool) $day->counts_as_leave,
                 'status' => $day->application_status,
                 'employee' => [
-                    'id' => 0,
+                    'id' => (int) $day->employee_user_id,
                     'name' => $day->employee_name,
                     'employee_id' => $day->employee_code,
                     'company_id' => $day->company_id,
@@ -518,13 +592,18 @@ class LeaveCalendarService
                     'employment_type_id' => $day->employment_type_id,
                 ],
                 'leave_type' => [
-                    'id' => 0,
+                    'id' => (int) $day->leave_type_id,
                     'name' => $day->leave_name,
                     'code' => $day->leave_code,
                     'display_color' => $day->display_color,
                 ],
                 'application_no' => $day->application_no,
                 'reason' => $day->reason,
+                'delegate' => $day->delegate_user_id ? [
+                    'id' => (int) $day->delegate_user_id,
+                    'name' => $day->delegate_name,
+                    'employee_id' => $day->delegate_employee_code,
+                ] : null,
                 'delegate_user_id' => $day->delegate_user_id,
                 'start_date' => $day->app_start_date,
                 'end_date' => $day->app_end_date,
@@ -568,10 +647,12 @@ class LeaveCalendarService
         $query = LeaveApplicationDay::query()
             ->join('leave_applications', 'leave_applications.id', '=', 'leave_application_days.leave_application_id')
             ->join('users', 'users.id', '=', 'leave_applications.user_id')
+            ->leftJoin('users as delegate_users', 'delegate_users.id', '=', 'leave_applications.delegate_user_id')
             ->join('leave_types', 'leave_types.id', '=', 'leave_applications.leave_type_id')
             ->where('leave_application_days.leave_date', $date->format('Y-m-d'))
             ->select(
                 'leave_application_days.*',
+                'leave_application_days.leave_date as calendar_date',
                 'leave_applications.status as application_status',
                 'leave_applications.application_no',
                 'leave_applications.reason',
@@ -580,6 +661,10 @@ class LeaveCalendarService
                 'leave_applications.submitted_at',
                 'leave_applications.approved_at',
                 'leave_applications.delegate_user_id',
+                'leave_applications.leave_type_id',
+                'delegate_users.name as delegate_name',
+                'delegate_users.employee_id as delegate_employee_code',
+                'users.id as employee_user_id',
                 'users.name as employee_name',
                 'users.employee_id as employee_code',
                 'users.company_id',
@@ -595,10 +680,12 @@ class LeaveCalendarService
                 'leave_types.display_color'
             );
 
-        if ($scope['company_id']) {
+        if (!$hrUser->hasRole(User::ROLE_ADMIN) && $scope['company_id'] === null) {
+            $query->whereNull('users.company_id');
+        } elseif ($scope['company_id'] !== null) {
             $query->where('users.company_id', $scope['company_id']);
         }
-        if ($scope['branch_id']) {
+        if ($scope['branch_id'] !== null) {
             $query->where('users.branch_id', $scope['branch_id']);
         }
 
@@ -639,6 +726,13 @@ class LeaveCalendarService
         if (!empty($filters['employee_id'])) {
             $query->where('leave_applications.user_id', $filters['employee_id']);
         }
+        if (!empty($filters['employee'])) {
+            $search = $filters['employee'];
+            $query->where(function ($q) use ($search) {
+                $q->where('users.employee_id', 'like', "%{$search}%")
+                    ->orWhere('users.name', 'like', "%{$search}%");
+            });
+        }
 
         if (empty($filters['include_non_leave'])) {
             $query->where('leave_application_days.counts_as_leave', true);
@@ -653,6 +747,7 @@ class LeaveCalendarService
                 'employee_code' => $day->employee_code,
                 'leave_type' => $day->leave_name,
                 'leave_code' => $day->leave_code,
+                'employee_id' => (int) $day->employee_user_id,
                 'leave_days' => (float) $day->leave_days,
                 'status' => $day->application_status,
                 'session' => $day->session,
@@ -661,6 +756,11 @@ class LeaveCalendarService
                 'reason' => $day->reason,
                 'start_date' => $day->app_start_date,
                 'end_date' => $day->app_end_date,
+                'delegate' => $day->delegate_user_id ? [
+                    'id' => (int) $day->delegate_user_id,
+                    'name' => $day->delegate_name,
+                    'employee_id' => $day->delegate_employee_code,
+                ] : null,
             ];
         }
 

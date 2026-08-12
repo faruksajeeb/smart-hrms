@@ -46,6 +46,6 @@ class LeaveApplicationDay extends Model
         if (is_null($value)) {
             return null;
         }
-        return \Carbon\Carbon::parse($value)->format('d-m-Y');  
+        return \Carbon\Carbon::parse($value)->format('Y-m-d');  
     }
 }

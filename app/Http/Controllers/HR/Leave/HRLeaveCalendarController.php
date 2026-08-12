@@ -17,11 +17,19 @@ class HRLeaveCalendarController extends Controller
 
     public function index(Request $request): Response
     {
+        $request->validate([
+            'year' => ['nullable', 'integer', 'between:1970,2100'],
+            'month' => ['nullable', 'integer', 'between:1,12'],
+            'status' => ['nullable', 'in:all,pending,approved,rejected,cancelled,withdrawn'],
+        ]);
+
         $user = $request->user();
         $today = \Carbon\Carbon::now();
 
         $year = $request->filled('year') ? (int) $request->integer('year') : $today->year;
         $month = $request->filled('month') ? (int) $request->integer('month') : $today->month;
+        $year = max(1970, min(2100, $year));
+        $month = max(1, min(12, $month));
 
         $from = \Carbon\Carbon::create($year, $month, 1)->startOfMonth();
         $to = $from->copy()->endOfMonth();
@@ -38,11 +46,12 @@ class HRLeaveCalendarController extends Controller
             'leave_type_id' => $request->integer('leave_type_id'),
             'status' => $request->string('status')->toString() ?: 'approved',
             'employee_id' => $request->integer('employee_id'),
+            'employee' => trim($request->string('employee')->toString()),
             'include_non_leave' => $request->boolean('include_non_leave'),
         ];
 
         $calendarData = $this->calendarService->getHRCalendar($user, $from, $to, $filters);
-
+// dd($calendarData['events']);
         return Inertia::render('HR/Leave/Calendar/Index', [
             'events' => $calendarData['events'],
             'summary' => $calendarData['summary'],
@@ -58,47 +67,47 @@ class HRLeaveCalendarController extends Controller
                     ->where('category', \App\Models\MasterDataItem::CATEGORY_COMPANY)
                     ->where('status', \App\Models\MasterDataItem::STATUS_ACTIVE)
                     ->orderBy('name')
-                    ->get(['id', 'name', 'code']),
+                    ->get(['id', 'parent_id', 'name', 'code']),
                 'branches' => \App\Models\MasterDataItem::query()
                     ->where('category', \App\Models\MasterDataItem::CATEGORY_BRANCH)
                     ->where('status', \App\Models\MasterDataItem::STATUS_ACTIVE)
                     ->orderBy('name')
-                    ->get(['id', 'name', 'code']),
+                    ->get(['id', 'parent_id', 'name', 'code']),
                 'clusters' => \App\Models\MasterDataItem::query()
                     ->where('category', \App\Models\MasterDataItem::CATEGORY_CLUSTER)
                     ->where('status', \App\Models\MasterDataItem::STATUS_ACTIVE)
                     ->orderBy('name')
-                    ->get(['id', 'name', 'code']),
+                    ->get(['id', 'parent_id', 'name', 'code']),
                 'divisions' => \App\Models\MasterDataItem::query()
                     ->where('category', \App\Models\MasterDataItem::CATEGORY_DIVISION)
                     ->where('status', \App\Models\MasterDataItem::STATUS_ACTIVE)
                     ->orderBy('name')
-                    ->get(['id', 'name', 'code']),
+                    ->get(['id', 'parent_id', 'name', 'code']),
                 'departments' => \App\Models\MasterDataItem::query()
                     ->where('category', \App\Models\MasterDataItem::CATEGORY_DEPARTMENT)
                     ->where('status', \App\Models\MasterDataItem::STATUS_ACTIVE)
                     ->orderBy('name')
-                    ->get(['id', 'name', 'code']),
+                    ->get(['id', 'parent_id', 'name', 'code']),
                 'sections' => \App\Models\MasterDataItem::query()
                     ->where('category', \App\Models\MasterDataItem::CATEGORY_SECTION)
                     ->where('status', \App\Models\MasterDataItem::STATUS_ACTIVE)
                     ->orderBy('name')
-                    ->get(['id', 'name', 'code']),
+                    ->get(['id', 'parent_id', 'name', 'code']),
                 'units' => \App\Models\MasterDataItem::query()
                     ->where('category', \App\Models\MasterDataItem::CATEGORY_UNIT)
                     ->where('status', \App\Models\MasterDataItem::STATUS_ACTIVE)
                     ->orderBy('name')
-                    ->get(['id', 'name', 'code']),
+                    ->get(['id', 'parent_id', 'name', 'code']),
                 'designations' => \App\Models\MasterDataItem::query()
                     ->where('category', \App\Models\MasterDataItem::CATEGORY_DESIGNATION)
                     ->where('status', \App\Models\MasterDataItem::STATUS_ACTIVE)
                     ->orderBy('name')
-                    ->get(['id', 'name', 'code']),
+                    ->get(['id', 'parent_id', 'name', 'code']),
                 'employmentTypes' => \App\Models\MasterDataItem::query()
                     ->where('category', \App\Models\MasterDataItem::CATEGORY_EMPLOYEE_TYPE)
                     ->where('status', \App\Models\MasterDataItem::STATUS_ACTIVE)
                     ->orderBy('name')
-                    ->get(['id', 'name', 'code']),
+                    ->get(['id', 'parent_id', 'name', 'code']),
                 'leaveTypes' => \App\Models\LeaveType::query()
                     ->where('status', 'active')
                     ->orderBy('display_order')
@@ -118,6 +127,13 @@ class HRLeaveCalendarController extends Controller
 
     public function dayDetails(Request $request)
     {
+        $request->validate([
+            'year' => ['required', 'integer', 'between:1970,2100'],
+            'month' => ['required', 'integer', 'between:1,12'],
+            'day' => ['required', 'integer', 'between:1,31'],
+            'status' => ['nullable', 'in:all,pending,approved,rejected,cancelled,withdrawn'],
+        ]);
+
         $user = $request->user();
         $today = \Carbon\Carbon::now();
 
@@ -126,6 +142,7 @@ class HRLeaveCalendarController extends Controller
         $day = $request->filled('day') ? (int) $request->integer('day') : $today->day;
 
         $date = \Carbon\Carbon::create($year, $month, $day);
+        abort_unless($date->year === $year && $date->month === $month && $date->day === $day, 422, 'Invalid calendar date.');
 
         $filters = [
             'company_id' => $request->integer('company_id'),
@@ -139,6 +156,7 @@ class HRLeaveCalendarController extends Controller
             'leave_type_id' => $request->integer('leave_type_id'),
             'status' => $request->string('status')->toString() ?: 'approved',
             'employee_id' => $request->integer('employee_id'),
+            'employee' => trim($request->string('employee')->toString()),
             'include_non_leave' => $request->boolean('include_non_leave'),
         ];
 
