@@ -37,6 +37,8 @@ use App\Http\Controllers\HR\Leave\TeamLeaveCalendarController;
 use App\Http\Controllers\HR\Leave\ManagerLeaveDashboardController;
 use App\Http\Controllers\HR\Leave\HRLeaveDashboardController;
 use App\Http\Controllers\HR\Leave\HRLeaveCalendarController;
+use App\Http\Controllers\HR\Leave\LeaveYearEndController;
+use App\Http\Controllers\HR\Leave\LeaveReportController;
 use App\Http\Controllers\Employee\Leave\LeaveCalendarController;
 
 
@@ -812,12 +814,26 @@ Route::middleware('auth')->group(function () {
                         Route::get('/day-details', 'dayDetails')->name('day-details');
                     });
 
+                Route::controller(LeaveYearEndController::class)->prefix('year-end')->name('year-end.')->middleware('permission:leave.year_end.view')->group(function () {
+                    Route::get('/', 'index')->name('index');
+                    Route::post('/preview', 'preview')->name('preview')->middleware('permission:leave.year_end.preview');
+                    Route::post('/process', 'process')->name('process')->middleware('permission:leave.year_end.process');
+                    Route::get('/{process}/export', 'export')->name('export')->middleware('permission:leave.year_end.export');
+                    Route::get('/{process}', 'show')->name('show');
+                });
+
                 Route::controller(HRLeaveDashboardController::class)
                     ->prefix('dashboard')
                     ->name('dashboard.')
                     ->group(function () {
                         Route::get('/', 'index')->name('index');
                     });
+
+                Route::controller(LeaveReportController::class)->prefix('reports')->name('reports.')->middleware('permission:leave.reports.view')->group(function () {
+                    Route::get('/', 'index')->name('index');
+                    Route::get('/data', 'data')->name('data');
+                    Route::get('/export', 'export')->name('export')->middleware('permission:leave.reports.export');
+                });
             });
         });
     });

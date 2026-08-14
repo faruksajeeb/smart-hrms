@@ -5,6 +5,7 @@
 @tailwind utilities;
 
 /* Searchable select + calendar theming */
+.input { width: 100%; border-radius: 0.75rem; border: 1px solid #cbd5e1; padding: 0.625rem 0.75rem; }
 .react-datepicker-wrapper {
     width: 100%;
 }

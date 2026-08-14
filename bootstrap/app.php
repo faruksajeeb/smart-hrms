@@ -33,6 +33,12 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->render(function (UnauthorizedException $exception, Request $request) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => 'You do not have access to this area.',
+                ], SymfonyResponse::HTTP_FORBIDDEN);
+            }
+
             return Inertia::render('Error', [
                 'status' => SymfonyResponse::HTTP_FORBIDDEN,
                 'message' => 'You do not have access to this area.',

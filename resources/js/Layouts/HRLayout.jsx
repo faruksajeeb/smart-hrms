@@ -145,6 +145,20 @@ const navigation = [
                 route: 'hr.leave.calendar.index',
                 active: 'hr.leave.calendar.*',
             },
+
+            {
+                label: 'Year-End Processing',
+                route: 'hr.leave.year-end.index',
+                active: 'hr.leave.year-end.*',
+                permission: 'leave.year_end.view',
+            },
+            
+            {
+                label: 'Leave Reports',
+                route: 'hr.leave.reports.index',
+                active: 'hr.leave.reports.*',
+                permission: 'leave.reports.view',
+            },
             {
                 label: 'Manager Dashboard',
                 route: 'hr.leave.manager-dashboard.index',
