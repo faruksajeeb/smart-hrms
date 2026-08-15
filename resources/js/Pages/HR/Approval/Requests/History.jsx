@@ -16,12 +16,7 @@ export default function IndexComponent({ requests }) {
                                 Approval Requests
                             </h2>
                             <div className="flex gap-3">
-                                <Link
-                                    href={route("hr.approval.requests.pending")}
-                                    className="inline-flex items-center rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-                                >
-                                    Pending Approvals
-                                </Link>
+                                
                                 <Link
                                     href={route("hr.approval.requests.history")}
                                     className="inline-flex items-center rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"

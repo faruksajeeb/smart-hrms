@@ -9,6 +9,11 @@ use App\Http\Controllers\HR\EmployeeController as HREmployeeController;
 use App\Http\Controllers\HR\MasterDataItemController as HRMasterDataItemController;
 
 use App\Http\Controllers\HR\AttendanceController;
+use App\Http\Controllers\HR\AttendancePolicyController;
+use App\Http\Controllers\HR\AttendancePolicyAssignmentController;
+use App\Http\Controllers\HR\AttendanceConfigurationController;
+use App\Http\Controllers\HR\AttendanceProcessingController;
+use App\Http\Controllers\HR\AttendanceRegularizationController;
 use App\Http\Controllers\HR\ShiftController;
 use App\Http\Controllers\HR\ShiftScheduleController;
 use App\Http\Controllers\HR\ShiftSwapRequestController;
@@ -119,6 +124,28 @@ Route::middleware('auth')->group(function () {
             Route::get('/employees/{employee}/documents/{document}/view', [HREmployeeController::class, 'viewDocument'])
                 ->name('employees.documents.view');
         });
+
+        Route::get('/attendance/policies', [AttendancePolicyController::class, 'index'])->name('attendance.policies.index')->middleware('permission:attendance.policy.view');
+        Route::post('/attendance/policies', [AttendancePolicyController::class, 'store'])->name('attendance.policies.store')->middleware('permission:attendance.policy.create');
+        Route::put('/attendance/policies/{attendancePolicy}', [AttendancePolicyController::class, 'update'])->name('attendance.policies.update')->middleware('permission:attendance.policy.edit');
+        Route::delete('/attendance/policies/{attendancePolicy}', [AttendancePolicyController::class, 'destroy'])->name('attendance.policies.destroy')->middleware('permission:attendance.policy.delete');
+        Route::get('/attendance/processing', [AttendanceProcessingController::class, 'index'])->name('attendance.processing.index')->middleware('permission:attendance.view');
+        Route::post('/attendance/processing', [AttendanceProcessingController::class, 'process'])->name('attendance.processing.process')->middleware('permission:attendance.process');
+        Route::post('/attendance/processing/{record}/reprocess', [AttendanceProcessingController::class, 'reprocess'])->name('attendance.processing.reprocess')->middleware('permission:attendance.reprocess');
+        Route::post('/attendance/processing/{record}/finalize', [AttendanceProcessingController::class, 'finalize'])->name('attendance.processing.finalize')->middleware('permission:attendance.finalize');
+        Route::get('/attendance/regularizations', [AttendanceRegularizationController::class, 'index'])->name('attendance.regularizations.index')->middleware('permission:attendance.regularization.view');
+        Route::get('/attendance/regularizations/create', [AttendanceRegularizationController::class, 'create'])->name('attendance.regularizations.create')->middleware('permission:attendance.regularization.create');
+        Route::post('/attendance/regularizations', [AttendanceRegularizationController::class, 'store'])->name('attendance.regularizations.store')->middleware('permission:attendance.regularization.create');
+        Route::get('/attendance/regularizations/{regularization}', [AttendanceRegularizationController::class, 'show'])->name('attendance.regularizations.show')->middleware('permission:attendance.regularization.view');
+        Route::post('/attendance/regularizations/{regularization}/submit', [AttendanceRegularizationController::class, 'submit'])->name('attendance.regularizations.submit')->middleware('permission:attendance.regularization.submit');
+        Route::post('/attendance/regularizations/{regularization}/cancel', [AttendanceRegularizationController::class, 'cancel'])->name('attendance.regularizations.cancel')->middleware('permission:attendance.regularization.cancel');
+        Route::get('/attendance/policy-assignments', [AttendancePolicyAssignmentController::class, 'index'])->name('attendance.policy-assignments.index')->middleware('permission:attendance.policy_assignment.view');
+        Route::post('/attendance/policy-assignments', [AttendancePolicyAssignmentController::class, 'store'])->name('attendance.policy-assignments.store')->middleware('permission:attendance.policy_assignment.create');
+        Route::put('/attendance/policy-assignments/{attendancePolicyAssignment}', [AttendancePolicyAssignmentController::class, 'update'])->name('attendance.policy-assignments.update')->middleware('permission:attendance.policy_assignment.edit');
+        Route::delete('/attendance/policy-assignments/{attendancePolicyAssignment}', [AttendancePolicyAssignmentController::class, 'destroy'])->name('attendance.policy-assignments.destroy')->middleware('permission:attendance.policy_assignment.delete');
+        Route::get('/attendance/configuration', [AttendanceConfigurationController::class, 'index'])->name('attendance.configuration.index')->middleware('permission:attendance.configuration.view');
+        Route::post('/attendance/configuration/statuses', [AttendanceConfigurationController::class, 'storeStatus'])->name('attendance.configuration.statuses.store')->middleware('permission:attendance.status.create');
+        Route::put('/attendance/configuration/statuses/{attendanceStatus}', [AttendanceConfigurationController::class, 'updateStatus'])->name('attendance.configuration.statuses.update')->middleware('permission:attendance.status.edit');
         Route::get('/master-data', [HRMasterDataItemController::class, 'index'])
             ->middleware('permission:master-data.view-master-data')
             ->name('master-data.index');
@@ -133,7 +160,7 @@ Route::middleware('auth')->group(function () {
             ->name('master-data.destroy');
 
         Route::middleware('permission:manage attendance')->group(function () {
-            Route::get('/attendance', [AttendanceController::class, 'index'])->name('attendance.index');
+            Route::get('/attendance', [AttendanceController::class, 'index'])->name('attendance.index')->middleware('permission:attendance.view');
 
             Route::post('/shift-schedules', [ShiftScheduleController::class, 'store'])->name('shift-schedules.store');
             Route::patch('/shift-schedules/{shiftSchedule}', [ShiftScheduleController::class, 'update'])->name('shift-schedules.update');
@@ -150,8 +177,8 @@ Route::middleware('auth')->group(function () {
             Route::post('/shift-swaps/{swapRequest}/review', [ShiftSwapRequestController::class, 'review'])->name('shift-swaps.review');
             Route::delete('/shift-swaps/{swapRequest}', [ShiftSwapRequestController::class, 'cancel'])->name('shift-swaps.cancel');
 
-            Route::post('/attendance/clock-in', [AttendanceController::class, 'clockIn'])->name('attendance.clock-in');
-            Route::post('/attendance/clock-out', [AttendanceController::class, 'clockOut'])->name('attendance.clock-out');
+            Route::post('/attendance/clock-in', [AttendanceController::class, 'clockIn'])->name('attendance.clock-in')->middleware('permission:attendance.create');
+            Route::post('/attendance/clock-out', [AttendanceController::class, 'clockOut'])->name('attendance.clock-out')->middleware('permission:attendance.edit');
 
 
             Route::get('/shift-schedules', [ShiftScheduleController::class, 'index'])->middleware('permission:manage attendance')->name('shift-schedules.index');
@@ -434,6 +461,8 @@ Route::middleware('auth')->group(function () {
 
                     Route::get('/{request}', 'show')
                         ->name('show');
+                    Route::post('/{approvalRequest}/approve', 'approve')->name('approve')->middleware('permission:attendance.approval.approve');
+                    Route::post('/{approvalRequest}/reject', 'reject')->name('reject')->middleware('permission:attendance.approval.reject');
                 });
 
             Route::controller(LeaveTypeController::class)

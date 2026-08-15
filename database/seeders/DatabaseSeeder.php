@@ -23,6 +23,7 @@ class DatabaseSeeder extends Seeder
             DummyMasterDataItemSeeder::class,
             ShiftSeeder::class,
             WeeklyOffPolicySeeder::class,
+            AttendanceMasterSeeder::class,
         ]);
     }
 }

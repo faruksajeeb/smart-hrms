@@ -5,6 +5,7 @@ namespace App\Http\Controllers\HR;
 use App\Http\Controllers\Controller;
 use App\Models\Attendance;
 use App\Models\ShiftSchedule;
+use App\Models\AttendancePunch;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -73,6 +74,7 @@ class AttendanceController extends Controller
             'clock_in_longitude' => $data['longitude'] ?? null,
             'status' => $status,
         ]);
+        AttendancePunch::create(['user_id'=>$user->id,'punch_datetime'=>now(),'punch_date'=>today(),'punch_type'=>'in','source'=>'web','latitude'=>$data['latitude'] ?? null,'longitude'=>$data['longitude'] ?? null]);
 
         return back()->with('success', 'Clocked in.');
     }
@@ -95,6 +97,7 @@ class AttendanceController extends Controller
             'clock_out_longitude' => $data['longitude'] ?? null,
             'total_minutes' => now()->diffInMinutes($attendance->clock_in),
         ]);
+        AttendancePunch::create(['user_id'=>$request->user()->id,'punch_datetime'=>now(),'punch_date'=>today(),'punch_type'=>'out','source'=>'web','latitude'=>$data['latitude'] ?? null,'longitude'=>$data['longitude'] ?? null]);
 
         return back()->with('success', 'Clocked out.');
     }

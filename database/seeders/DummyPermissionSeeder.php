@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
 class DummyPermissionSeeder extends Seeder
@@ -75,6 +76,44 @@ class DummyPermissionSeeder extends Seeder
             ['name' => 'leave.year_end.reprocess', 'group_name' => 'leave'],
             ['name' => 'leave.year_end.encashment', 'group_name' => 'leave'],
             ['name' => 'leave.year_end.export', 'group_name' => 'leave'],
+            ['name' => 'attendance.view', 'group_name' => 'attendance'],
+            ['name' => 'attendance.create', 'group_name' => 'attendance'],
+            ['name' => 'attendance.edit', 'group_name' => 'attendance'],
+            ['name' => 'attendance.delete', 'group_name' => 'attendance'],
+            ['name' => 'attendance.policy.view', 'group_name' => 'attendance'],
+            ['name' => 'attendance.policy.create', 'group_name' => 'attendance'],
+            ['name' => 'attendance.policy.edit', 'group_name' => 'attendance'],
+            ['name' => 'attendance.policy.delete', 'group_name' => 'attendance'],
+            ['name' => 'attendance.policy_assignment.view', 'group_name' => 'attendance'],
+            ['name' => 'attendance.policy_assignment.create', 'group_name' => 'attendance'],
+            ['name' => 'attendance.policy_assignment.edit', 'group_name' => 'attendance'],
+            ['name' => 'attendance.policy_assignment.delete', 'group_name' => 'attendance'],
+            ['name' => 'attendance.status.view', 'group_name' => 'attendance'],
+            ['name' => 'attendance.status.create', 'group_name' => 'attendance'],
+            ['name' => 'attendance.status.edit', 'group_name' => 'attendance'],
+            ['name' => 'attendance.status.delete', 'group_name' => 'attendance'],
+            ['name' => 'attendance.configuration.view', 'group_name' => 'attendance'],
+            ['name' => 'attendance.configuration.create', 'group_name' => 'attendance'],
+            ['name' => 'attendance.configuration.edit', 'group_name' => 'attendance'],
+            ['name' => 'attendance.view_own', 'group_name' => 'attendance'],
+            ['name' => 'attendance.view_all', 'group_name' => 'attendance'],
+            ['name' => 'attendance.process', 'group_name' => 'attendance'],
+            ['name' => 'attendance.reprocess', 'group_name' => 'attendance'],
+            ['name' => 'attendance.finalize', 'group_name' => 'attendance'],
+            ['name' => 'attendance.unlock', 'group_name' => 'attendance'],
+            ['name' => 'attendance.regularization.view', 'group_name' => 'attendance'],
+            ['name' => 'attendance.regularization.create', 'group_name' => 'attendance'],
+            ['name' => 'attendance.regularization.edit', 'group_name' => 'attendance'],
+            ['name' => 'attendance.regularization.submit', 'group_name' => 'attendance'],
+            ['name' => 'attendance.regularization.cancel', 'group_name' => 'attendance'],
+            ['name' => 'attendance.regularization.withdraw', 'group_name' => 'attendance'],
+            ['name' => 'attendance.regularization.approve', 'group_name' => 'attendance'],
+            ['name' => 'attendance.regularization.reject', 'group_name' => 'attendance'],
+            ['name' => 'attendance.approval.view', 'group_name' => 'attendance'],
+            ['name' => 'attendance.approval.approve', 'group_name' => 'attendance'],
+            ['name' => 'attendance.approval.reject', 'group_name' => 'attendance'],
+            ['name' => 'attendance.approval.delegate', 'group_name' => 'attendance'],
+            ['name' => 'attendance.report.view', 'group_name' => 'attendance'],
             ['name' => 'leave.reports.view', 'group_name' => 'leave-reports'],
             ['name' => 'leave.reports.balance', 'group_name' => 'leave-reports'],
             ['name' => 'leave.reports.ledger', 'group_name' => 'leave-reports'],
@@ -220,5 +259,12 @@ class DummyPermissionSeeder extends Seeder
         }
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+        $hr = Role::where('name', 'hr')->where('guard_name', 'web')->first();
+        if ($hr) {
+            $hr->givePermissionTo(Permission::whereIn('name', [
+                'attendance.view', 'attendance.create', 'attendance.edit', 'attendance.delete', 'attendance.policy.view', 'attendance.policy.create', 'attendance.policy.edit', 'attendance.policy.delete', 'attendance.policy_assignment.view', 'attendance.policy_assignment.create', 'attendance.policy_assignment.edit', 'attendance.policy_assignment.delete', 'attendance.status.view', 'attendance.status.create', 'attendance.status.edit', 'attendance.status.delete', 'attendance.configuration.view', 'attendance.configuration.create', 'attendance.configuration.edit', 'attendance.view_all', 'attendance.process', 'attendance.reprocess', 'attendance.finalize', 'attendance.unlock', 'attendance.regularization.view', 'attendance.regularization.approve', 'attendance.regularization.reject', 'attendance.approval.view', 'attendance.approval.approve', 'attendance.approval.reject', 'attendance.report.view',
+            ])->get());
+        }
     }
 }

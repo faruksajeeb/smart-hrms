@@ -7,9 +7,25 @@ use App\Models\ApprovalRequest;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use App\Services\HR\Approval\ApprovalEngineService;
+use App\Models\AttendanceRegularization;
+use App\Services\HR\AttendanceRegularizationService;
 
 class ApprovalRequestController extends Controller
 {
+    public function approve(Request $request, ApprovalRequest $approvalRequest, ApprovalEngineService $engine, AttendanceRegularizationService $regularizations)
+    {
+        $engine->approve($approvalRequest, $request->user(), $request->input('remarks'));
+        $approvalRequest->refresh();
+        if ($approvalRequest->module_name === 'attendance_regularization' && $approvalRequest->current_status->value === 'approved') $regularizations->applyApproved(AttendanceRegularization::findOrFail($approvalRequest->reference_id), $request->user()->id);
+        return back()->with('success','Approval completed.');
+    }
+    public function reject(Request $request, ApprovalRequest $approvalRequest, ApprovalEngineService $engine, AttendanceRegularizationService $regularizations)
+    {
+        $engine->reject($approvalRequest, $request->user(), $request->input('remarks'));
+        if ($approvalRequest->module_name === 'attendance_regularization') $regularizations->reject(AttendanceRegularization::findOrFail($approvalRequest->reference_id), $request->user()->id, $request->input('remarks'));
+        return back()->with('success','Approval rejected.');
+    }
     public function index(Request $request): Response
     {
         $query = ApprovalRequest::query()
@@ -57,7 +73,7 @@ class ApprovalRequestController extends Controller
             })
             ->orderBy('created_at', 'desc')
             ->paginate(15);
-
+// dd($pendingRequests);
         return Inertia::render('HR/Approval/Requests/Pending', [
             'requests' => $pendingRequests,
         ]);

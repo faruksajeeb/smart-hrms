@@ -74,6 +74,27 @@ const navigation = [
                 route: 'hr.bulk-assignments.index',
                 active: 'hr.bulk-assignments.*',
             },
+            {
+                label: 'Attendance Policies',
+                route: 'hr.attendance.policies.index',
+                active: 'hr.attendance.policies.*',
+                permission: 'attendance.policy.view',
+            },
+            {
+                label: 'Policy Assignments',
+                route: 'hr.attendance.policy-assignments.index',
+                active: 'hr.attendance.policy-assignments.*',
+                permission: 'attendance.policy_assignment.view',
+            },
+            {
+                label: 'Attendance Statuses',
+                route: 'hr.attendance.configuration.index',
+                active: 'hr.attendance.configuration.*',
+                permission: 'attendance.status.view',
+            },
+            { label: 'Attendance Processing', route: 'hr.attendance.processing.index', active: 'hr.attendance.processing.*', permission: 'attendance.view' },
+            { label: 'Regularization', route: 'hr.attendance.regularizations.index', active: 'hr.attendance.regularizations.*', permission: 'attendance.regularization.view' },
+            { label: 'Attendance Approval', route: 'hr.approval.requests.pending', active: 'hr.approval.requests.*', permission: 'attendance.approval.view' },
         ],
     },
     {

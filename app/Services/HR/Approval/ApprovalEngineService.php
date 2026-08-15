@@ -5,6 +5,7 @@ namespace App\Services\HR\Approval;
 use App\Enums\ApprovalStatus;
 use App\Enums\ApprovalType;
 use App\Enums\ApprovalWorkflowLevelStatus;
+use App\Enums\ApprovalWorkflowStatus;
 use App\Models\ApprovalRequest;
 use App\Models\ApprovalRequestStep;
 use App\Models\ApprovalWorkflow;
@@ -61,6 +62,7 @@ class ApprovalEngineService
             $approver,
             $remarks
         ) {
+            $approvalRequest = ApprovalRequest::whereKey($approvalRequest->id)->lockForUpdate()->with(['workflow','steps','requester'])->firstOrFail();
             $currentStep = $approvalRequest->currentStep;
 
             if (!$currentStep || $currentStep->approver_id !== $approver->id) {
@@ -90,7 +92,7 @@ class ApprovalEngineService
                     'current_level' => $nextLevel,
                 ]);
 
-                $this->createStepForLevel($approvalRequest, $nextLevel, $approver);
+                $this->createStepForLevel($approvalRequest, $nextLevel, $approvalRequest->requester);
             }
 
             return $approvalRequest->fresh();
@@ -107,6 +109,7 @@ class ApprovalEngineService
             $approver,
             $remarks
         ) {
+            $approvalRequest = ApprovalRequest::whereKey($approvalRequest->id)->lockForUpdate()->with(['workflow','steps','requester'])->firstOrFail();
             $currentStep = $approvalRequest->currentStep;
 
             if (!$currentStep || $currentStep->approver_id !== $approver->id) {
@@ -156,9 +159,8 @@ class ApprovalEngineService
             ->orderBy('level_no')
             ->get();
 
-        foreach ($levels as $level) {
-            $this->createStepForLevel($approvalRequest, $level->level_no, $requestedBy, $level);
-        }
+        $level = $levels->first();
+        if ($level) $this->createStepForLevel($approvalRequest, $level->level_no, $requestedBy, $level);
     }
 
     protected function createStepForLevel(
