@@ -7,6 +7,10 @@ const navigation = [
         route: 'employee.attendance',
         permission: 'manage attendance',
         roles: ['employee'],
+        children: [
+            { label: 'My Attendance Dashboard', route: 'attendance.dashboard.own', active: 'attendance.dashboard.*', permission: 'attendance.dashboard.view_own' },
+            { label: 'My Attendance Calendar', route: 'attendance.calendar.own', active: 'attendance.calendar.*', permission: 'attendance.calendar.view_own' },
+        ],
     },
     {
         label: 'Leave Center',

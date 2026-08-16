@@ -1,6 +1,6 @@
 <?php
 namespace App\Services\HR;
-use App\Models\EmployeeShiftAssignment; use App\Models\HolidayCalendar; use App\Models\EmployeeWeeklyOffAssignment; use App\Models\Shift; use App\Models\ShiftSchedule; use App\Models\User; use App\Models\LeaveApplicationDay; use Carbon\Carbon;
+use App\Models\EmployeeEmploymentHistory; use App\Models\EmployeeShiftAssignment; use App\Models\HolidayCalendar; use App\Models\EmployeeWeeklyOffAssignment; use App\Models\Shift; use App\Models\ShiftSchedule; use App\Models\User; use App\Models\LeaveApplicationDay; use Carbon\Carbon;
 
 class AttendanceScheduleResolver
 {
@@ -8,6 +8,8 @@ class AttendanceScheduleResolver
     public function resolve(User $employee, Carbon $date): array
     {
         $date = $date->copy()->startOfDay(); $dateString = $date->toDateString();
+        $history = EmployeeEmploymentHistory::query()->where('user_id',$employee->id)->whereDate('effective_from','<=',$dateString)->where(fn($q)=>$q->whereNull('effective_to')->orWhereDate('effective_to','>=',$dateString))->latest('effective_from')->first();
+        if ($history) { foreach (['company_id','branch_id','cluster_id','division_id','department_id','section_id','unit_id','designation_id','employment_type_id','reporting_manager_id'] as $field) { if ($history->{$field} !== null) $employee->{$field} = $history->{$field}; } }
         $schedule = ShiftSchedule::with('shift')->where('user_id',$employee->id)->whereDate('work_date',$dateString)->whereNotIn('status',[ShiftSchedule::STATUS_CANCELLED])->first();
         $assignment = EmployeeShiftAssignment::with('shift')->where('user_id',$employee->id)->whereDate('effective_from','<=',$dateString)->where(fn($q)=>$q->whereNull('effective_to')->orWhereDate('effective_to','>=',$dateString))->latest('effective_from')->first();
         $shift = $schedule?->shift ?? $assignment?->shift ?? Shift::active()->where('company_id',$employee->company_id)->orderBy('id')->first();

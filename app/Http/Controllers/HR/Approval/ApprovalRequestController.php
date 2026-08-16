@@ -10,11 +10,13 @@ use Inertia\Response;
 use App\Services\HR\Approval\ApprovalEngineService;
 use App\Models\AttendanceRegularization;
 use App\Services\HR\AttendanceRegularizationService;
+use App\Services\HR\AttendancePeriodService;
 
 class ApprovalRequestController extends Controller
 {
-    public function approve(Request $request, ApprovalRequest $approvalRequest, ApprovalEngineService $engine, AttendanceRegularizationService $regularizations)
+    public function approve(Request $request, ApprovalRequest $approvalRequest, ApprovalEngineService $engine, AttendanceRegularizationService $regularizations, AttendancePeriodService $periods)
     {
+        if ($approvalRequest->module_name === 'attendance_regularization') $periods->assertEditable(AttendanceRegularization::findOrFail($approvalRequest->reference_id)->attendance_date->toDateString());
         $engine->approve($approvalRequest, $request->user(), $request->input('remarks'));
         $approvalRequest->refresh();
         if ($approvalRequest->module_name === 'attendance_regularization' && $approvalRequest->current_status->value === 'approved') $regularizations->applyApproved(AttendanceRegularization::findOrFail($approvalRequest->reference_id), $request->user()->id);

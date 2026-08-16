@@ -1,0 +1,13 @@
+<?php
+namespace App\Services\HR;
+use App\Models\AttendanceDeviceEmployeeMapping;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
+class AttendanceDeviceMappingService {
+ public function resolve(int $deviceId,string $externalId,Carbon $at): ?AttendanceDeviceEmployeeMapping { return AttendanceDeviceEmployeeMapping::query()->where('device_id',$deviceId)->where('external_employee_id',$externalId)->where('status','active')->whereDate('effective_from','<=',$at)->where(fn($q)=>$q->whereNull('effective_to')->orWhereDate('effective_to','>=',$at))->with('user')->first(); }
+ public function validateNoOverlap(array $data,?int $ignore=null): void { $from=Carbon::parse($data['effective_from']);$to=!empty($data['effective_to'])?Carbon::parse($data['effective_to']):null;if($to&&$to->lt($from))throw ValidationException::withMessages(['effective_to'=>'Effective To must be on or after Effective From.']);$query=fn()=>AttendanceDeviceEmployeeMapping::query()->where('status','active')->when($ignore,fn($q)=>$q->whereKeyNot($ignore))->whereDate('effective_from','<=',$to?->toDateString()??'9999-12-31')->where(fn($q)=>$q->whereNull('effective_to')->orWhereDate('effective_to','>=',$from->toDateString()));if($query()->where('device_id',$data['device_id'])->where('external_employee_id',$data['external_employee_id'])->exists())throw ValidationException::withMessages(['external_employee_id'=>'An active mapping overlaps the selected dates for this device and external ID.']);if($query()->where('device_id',$data['device_id'])->where('user_id',$data['user_id'])->exists())throw ValidationException::withMessages(['user_id'=>'This employee already has an overlapping active mapping on this device.']); }
+ public function create(array $data,int $actorId): AttendanceDeviceEmployeeMapping { return DB::transaction(function()use($data,$actorId){$this->validateNoOverlap($data);return AttendanceDeviceEmployeeMapping::create($data+['created_by'=>$actorId,'updated_by'=>$actorId]);}); }
+ public function update(AttendanceDeviceEmployeeMapping $mapping,array $data,int $actorId): AttendanceDeviceEmployeeMapping { return DB::transaction(function()use($mapping,$data,$actorId){$this->validateNoOverlap($data,$mapping->id);$mapping->update($data+['updated_by'=>$actorId]);return $mapping->fresh();}); }
+ public function deactivate(AttendanceDeviceEmployeeMapping $mapping,int $actorId): AttendanceDeviceEmployeeMapping { return DB::transaction(function()use($mapping,$actorId){$mapping->update(['status'=>'inactive','effective_to'=>$mapping->effective_to?:today(),'updated_by'=>$actorId]);return $mapping->fresh();}); }
+}

@@ -12,11 +12,12 @@ use Illuminate\Support\Facades\DB;
 
 class AttendanceProcessingService
 {
-    public function __construct(protected AttendanceScheduleResolver $scheduleResolver) {}
+    public function __construct(protected AttendanceScheduleResolver $scheduleResolver, protected AttendancePeriodService $periods) {}
 
     public function processEmployeeAttendance(User $employee, Carbon|string $date, ?int $actorId = null, bool $force = false): AttendanceDailyRecord
     {
         $date = $date instanceof Carbon ? $date->copy()->startOfDay() : Carbon::parse($date)->startOfDay();
+        $this->periods->assertEditable($date->toDateString());
         return DB::transaction(function () use ($employee, $date, $actorId, $force) {
             $record = AttendanceDailyRecord::query()->where('user_id', $employee->id)->whereDate('attendance_date', $date)->lockForUpdate()->first();
             if ($record && in_array($record->lifecycle_status, ['finalized', 'locked'], true) && ! $force) {

@@ -26,7 +26,81 @@ function isNavItemActive(item) {
         ? item.active
         : [item.active ?? item.route];
 
-    return patterns.some((pattern) => route().current(pattern));
+    const currentRoute = route().current();
+
+    return patterns.some((pattern) => {
+        if (!pattern) return false;
+        if (pattern === currentRoute) return true;
+        if (pattern.endsWith('.*')) {
+            const prefix = pattern.slice(0, -2);
+            return !!currentRoute && currentRoute.startsWith(`${prefix}.`);
+        }
+        return false;
+    });
+}
+
+// Recursive Navigation Item Component
+function NavGroup({ item, expandedGroups, toggleGroup, level = 0 }) {
+    const hasChildren = item.children && item.children.length > 0;
+    const active = isNavItemActive(item);
+    const expanded = expandedGroups.includes(item.label) || active;
+
+    const indentClass = level > 0 ? `pl-${Math.min(level * 3 + 3, 9)}` : '';
+
+    if (hasChildren) {
+        return (
+            <div>
+                <button
+                    type="button"
+                    onClick={() => toggleGroup(item.label)}
+                    className={`flex w-full items-center justify-between rounded-2xl px-4 py-2.5 text-sm font-medium transition ${
+                        active
+                            ? 'bg-white/10 text-white'
+                            : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                    }`}
+                >
+                    <span className="truncate">{item.label}</span>
+                    <span className={`text-xs transition ${expanded ? 'rotate-180' : ''}`}>
+                        ▾
+                    </span>
+                </button>
+
+                {expanded && (
+                    <div className={`mt-1 space-y-1 ${indentClass}`}>
+                        {item.children.map((child) => (
+                            <NavGroup
+                                key={`${child.route ?? 'child'}:${child.label}`}
+                                item={child}
+                                expandedGroups={expandedGroups}
+                                toggleGroup={toggleGroup}
+                                level={level + 1}
+                            />
+                        ))}
+                    </div>
+                )}
+            </div>
+        );
+    }
+
+    const childHref = item.route ? route(item.route, item.params ?? {}) : '#';
+
+    return (
+        <Link
+            href={childHref}
+            className={`flex items-center justify-between rounded-2xl px-4 py-2 text-sm font-medium transition ${
+                active
+                    ? 'bg-white text-slate-950 shadow-lg shadow-slate-950/10'
+                    : 'text-slate-400 hover:bg-white/10 hover:text-white'
+            }`}
+        >
+            <span className="truncate">{item.label}</span>
+            {item.permission && level === 0 && (
+                <span className="rounded-full bg-slate-900/5 px-2 py-1 text-[10px] uppercase tracking-[0.2em]">
+                    secure
+                </span>
+            )}
+        </Link>
+    );
 }
 
 export default function RoleLayout({
@@ -39,45 +113,38 @@ export default function RoleLayout({
     const { auth, authRoles = [], authPermissions = [], flash = {} } = usePage().props;
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
-    const items = useMemo(
-        () =>
-            navigation
-                .map((item) => {
-                    if (item.children) {
-                        const children = item.children.filter((child) =>
-                            isNavItemVisible(child, authPermissions, authRoles),
-                        );
+    // Recursively filter navigation based on permissions/roles
+    const filterNavItems = (items) => {
+        return items
+            .map((item) => {
+                if (item.children) {
+                    const filteredChildren = filterNavItems(item.children);
+                    const parentVisible = isNavItemVisible(item, authPermissions, authRoles);
 
-                        if (children.length === 0) {
-                            return null;
-                        }
-
-                        if (!isNavItemVisible(item, authPermissions, authRoles)) {
-                            return null;
-                        }
-
-                        return { ...item, children };
+                    if (filteredChildren.length === 0 && !parentVisible) {
+                        return null;
                     }
 
-                    return isNavItemVisible(item, authPermissions, authRoles)
-                        ? item
-                        : null;
-                })
-                .filter(Boolean),
+                    return { ...item, children: filteredChildren };
+                }
+
+                return isNavItemVisible(item, authPermissions, authRoles) ? item : null;
+            })
+            .filter(Boolean);
+    };
+
+    const items = useMemo(
+        () => filterNavItems(navigation),
         [navigation, authPermissions, authRoles],
     );
 
-    const [expandedGroups, setExpandedGroups] = useState(() =>
-        navigation
-            .filter((item) => item.children && isNavItemActive(item))
-            .map((item) => item.label),
-    );
+    const [expandedGroups, setExpandedGroups] = useState([]);
 
     const toggleGroup = (label) => {
         setExpandedGroups((current) =>
             current.includes(label)
                 ? current.filter((value) => value !== label)
-                : [...current, label],
+                : [...current, label]
         );
     };
 
@@ -124,90 +191,21 @@ export default function RoleLayout({
                                 <p className="font-semibold">{auth.user?.name}</p>
                                 <p className="text-sm text-slate-400">{auth.user?.email}</p>
                             </div>
-                            <span
-                                className={`rounded-full px-3 py-1 text-xs font-semibold uppercase ring-1 ${badgeClass}`}
-                            >
+                            <span className={`rounded-full px-3 py-1 text-xs font-semibold uppercase ring-1 ${badgeClass}`}>
                                 {role}
                             </span>
                         </div>
                     </div>
 
-                    <nav className="mt-8 space-y-2">
-                        {items.map((item) => {
-                            if (item.children) {
-                                const active = isNavItemActive(item);
-                                const expanded =
-                                    expandedGroups.includes(item.label) || active;
-
-                                return (
-                                    <div key={item.label}>
-                                        <button
-                                            type="button"
-                                            onClick={() => toggleGroup(item.label)}
-                                            className={`flex w-full items-center justify-between rounded-2xl px-4 py-3 text-sm font-medium transition ${
-                                                active
-                                                    ? 'bg-white/10 text-white'
-                                                    : 'text-slate-300 hover:bg-white/10 hover:text-white'
-                                            }`}
-                                        >
-                                            <span>{item.label}</span>
-                                            <span
-                                                className={`text-xs transition ${
-                                                    expanded ? 'rotate-180' : ''
-                                                }`}
-                                            >
-                                                ▾
-                                            </span>
-                                        </button>
-
-                                        {expanded && (
-                                            <div className="mt-1 space-y-1 pl-3">
-                                                {item.children.map((child) => {
-                                                    const childActive = isNavItemActive(
-                                                        child,
-                                                    );
-
-                                                    return (
-                                                        <Link
-                                                            key={child.route}
-                                                            href={route(child.route)}
-                                                            className={`flex items-center justify-between rounded-2xl px-4 py-2.5 text-sm font-medium transition ${
-                                                                childActive
-                                                                    ? 'bg-white text-slate-950 shadow-lg shadow-slate-950/10'
-                                                                    : 'text-slate-400 hover:bg-white/10 hover:text-white'
-                                                            }`}
-                                                        >
-                                                            <span>{child.label}</span>
-                                                        </Link>
-                                                    );
-                                                })}
-                                            </div>
-                                        )}
-                                    </div>
-                                );
-                            }
-
-                            const active = isNavItemActive(item);
-
-                            return (
-                                <Link
-                                    key={item.route}
-                                    href={route(item.route)}
-                                    className={`flex items-center justify-between rounded-2xl px-4 py-3 text-sm font-medium transition ${
-                                        active
-                                            ? 'bg-white text-slate-950 shadow-lg shadow-slate-950/10'
-                                            : 'text-slate-300 hover:bg-white/10 hover:text-white'
-                                    }`}
-                                >
-                                    <span>{item.label}</span>
-                                    {item.permission && (
-                                        <span className="rounded-full bg-slate-900/5 px-2 py-1 text-[10px] uppercase tracking-[0.2em]">
-                                            secure
-                                        </span>
-                                    )}
-                                </Link>
-                            );
-                        })}
+                    <nav className="mt-8 space-y-2 overflow-y-auto max-h-[calc(100vh-280px)]">
+                        {items.map((item) => (
+                            <NavGroup
+                                key={item.label}
+                                item={item}
+                                expandedGroups={expandedGroups}
+                                toggleGroup={toggleGroup}
+                            />
+                        ))}
                     </nav>
                 </aside>
 
